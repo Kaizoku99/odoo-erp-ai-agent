@@ -136,13 +136,27 @@ Complete reset (deletes database):
 docker-compose down -v
 ```
 
-## 🔌 Using with n8n
+## 🔌 n8n Integration
 
-Once deployed, integrate with n8n using an HTTP Request node:
+Once deployed, integrate with n8n for powerful automation workflows!
 
-**Configuration:**
+### Quick Start
+
+We provide ready-to-use n8n workflow templates:
+
+1. **Simple Test Webhook** - Test your AI agent with HTTP requests
+2. **WhatsApp Bot** - Complete WhatsApp chatbot using Evolution API
+3. **Original Complex** - Advanced multi-tool workflow
+
+**📖 See [N8N_INTEGRATION_GUIDE.md](./N8N_INTEGRATION_GUIDE.md) for complete setup instructions**
+
+**📁 Browse workflow templates in [n8n_workflows/](./n8n_workflows/)**
+
+### Quick Example
+
+**HTTP Request Node Configuration:**
 - Method: `POST`
-- URL: `https://your-ai-agent.coolify.app/chat`
+- URL: `http://your-coolify-agent.sslip.io/chat`
 - Body:
 ```json
 {
@@ -156,6 +170,8 @@ Once deployed, integrate with n8n using an HTTP Request node:
 - "Show me low stock items"
 - "Create a new lead for Acme Corp"
 - "What's our total revenue this quarter?"
+- "List all employees in the Sales department"
+- "What vehicles are in our fleet?"
 
 ## 🛠️ Configuration
 
@@ -163,12 +179,24 @@ The AI Agent uses Google Gemini (`gemini-pro` model) by default. You can modify 
 
 ### Supported Odoo Modules
 
-The AI Agent automatically detects and works with:
-- Sales (CRM, Sales Orders)
-- Inventory (Products, Stock)
-- Manufacturing (BOMs, Work Orders)
-- Purchasing (Purchase Orders, Vendors)
-- Accounting (Invoices, Payments)
+The AI Agent automatically detects and works with installed modules:
+- ✅ **Sales** - Orders, customers, sales teams
+- ✅ **Inventory** - Products, stock levels, categories
+- ✅ **Manufacturing** - BOMs, work orders, production
+- ✅ **Purchasing** - Purchase orders, vendors, requisitions
+- ✅ **Accounting** - Invoices, payments, journals
+- ✅ **CRM** - Leads, opportunities, activities
+- ✅ **HR/Employees** - Staff, departments, jobs
+- ✅ **Payroll** - Payslips, salary structures
+- ✅ **Attendances** - Check-ins, working hours
+- ✅ **Fleet** - Vehicles, models, drivers
+- ✅ **Expenses** - Employee expenses, reimbursements
+- ✅ **Calendar** - Events, meetings, schedules
+- ✅ **Contacts** - All partners (customers & suppliers)
+- ✅ **Point of Sale** - POS orders, sessions
+- ✅ **Companies & Users** - System information
+
+*Fetches up to 100 records per module to optimize performance*
 
 ## 🔒 Security Recommendations
 
@@ -204,8 +232,10 @@ In Coolify: Go to your service → Logs → View real-time logs
 
 ## 📚 Documentation
 
-- [Coolify Deployment Guide](./ai_agent/COOLIFY_DEPLOYMENT.md)
-- [Environment Variables Template](./ai_agent/.env.example)
+- [📘 Coolify Deployment Guide](./ai_agent/COOLIFY_DEPLOYMENT.md) - Deploy AI Agent to Coolify
+- [🔌 n8n Integration Guide](./N8N_INTEGRATION_GUIDE.md) - Connect with n8n workflows
+- [📁 n8n Workflow Templates](./n8n_workflows/) - Ready-to-use workflow files
+- [⚙️ Environment Variables Template](./ai_agent/.env.example) - Configuration reference
 
 ## 🤝 Contributing
 

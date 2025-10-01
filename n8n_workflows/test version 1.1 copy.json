@@ -1,0 +1,554 @@
+{
+  "name": "test version 1.1 copy",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "72488c18-5f10-424a-b265-1215dcbcd3bb",
+        "options": {}
+      },
+      "id": "00aaacad-913b-4b6f-8402-7788eb7bc5dc",
+      "name": "evolution api",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1984,
+        32
+      ],
+      "webhookId": "72488c18-5f10-424a-b265-1215dcbcd3bb"
+    },
+    {
+      "parameters": {
+        "text": "=Message: {{ $json.body.data.message.conversation || $json.body.data.message.extendedTextMessage?.text || 'Hello' }}\nCustomer Phone: {{ $json.body.data.key.remoteJid }}\nCustomer Name: {{ $json.body.data.pushName }}\nInstance: {{ $json.body.instance }}",
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"array\",\n  \"items\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"output\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"intent\": {\n            \"type\": \"string\",\n            \"enum\": [\n              \"financial_inquiry\",\n              \"sales_report\",\n              \"inventory_check\",\n              \"vendor_management\",\n              \"customer_inquiry\",\n              \"greeting\",\n              \"clarification\",\n              \"multi_step_query\",\n              \"urgent_request\",\n              \"create_record\",\n              \"update_record\"\n            ]\n          },\n          \"confidence\": { \"type\": \"number\", \"minimum\": 0, \"maximum\": 1 },\n          \"question\": { \"type\": \"string\" },\n          \"customer_phone\": { \"type\": \"string\" },\n          \"customer_name\": { \"type\": \"string\" },\n          \"instance_id\": { \"type\": \"string\" },\n\n          \"entities\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"date_range\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"start\": { \"type\": \"string\" },\n                  \"end\": { \"type\": \"string\" },\n                  \"period_type\": { \"type\": \"string\" }\n                },\n                \"additionalProperties\": false\n              },\n              \"amounts\": {\n                \"type\": \"array\",\n                \"items\": {\n                  \"type\": \"object\",\n                  \"properties\": {\n                    \"value\": { \"type\": \"number\" },\n                    \"currency\": { \"type\": \"string\" },\n                    \"operator\": { \"type\": \"string\" }\n                  },\n                  \"additionalProperties\": false\n                }\n              },\n              \"vendor_names\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n              \"product_names\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n              \"priority_level\": { \"type\": \"string\" },\n\n              \"partner_query\": {\n                \"type\": \"object\",\n                \"description\": \"If the user asked for a partner list / partner-specific operation.\",\n                \"properties\": {\n                  \"query_type\": { \"type\": \"string\", \"enum\": [\"list\", \"single\", \"search\", \"match\"] },\n                  \"role_inferred\": { \"type\": \"string\", \"enum\": [\"customer\",\"supplier\",\"both\",\"unknown\"] },\n                  \"role_confidence\": { \"type\": \"number\", \"minimum\": 0, \"maximum\": 1 },\n                  \"confidence_score\": { \"type\": \"number\", \"minimum\": 0, \"maximum\": 1 },\n                  \"raw_text\": { \"type\": \"string\" }\n                },\n                \"additionalProperties\": true\n              }\n            },\n            \"additionalProperties\": true\n          },\n\n          \"odoo\": {\n            \"type\": \"object\",\n            \"description\": \"Payload for create/update record operations\",\n            \"properties\": {\n              \"model_name\": {\n                \"type\": \"string\",\n                \"description\": \"Odoo model technical name, e.g. res.partner, account.move\"\n              },\n              \"record_id\": {\n                \"oneOf\": [\n                  { \"type\": \"integer\" },\n                  { \"type\": \"string\" }\n                ],\n                \"description\": \"ID of the record to update (required for update_record)\"\n              },\n              \"fields_data\": {\n                \"type\": \"object\",\n                \"description\": \"Object containing field names and values for the record\"\n              },\n              \"options\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"validate_only\": {\n                    \"type\": \"boolean\",\n                    \"description\": \"Only validate fields without creating/updating record\"\n                  },\n                  \"return_fields\": {\n                    \"type\": \"array\",\n                    \"items\": { \"type\": \"string\" },\n                    \"description\": \"Fields to return from created/updated record\"\n                  }\n                },\n                \"additionalProperties\": true\n              }\n            },\n            \"additionalProperties\": false\n          },\n\n          \"partners\": {\n            \"type\": \"array\",\n            \"description\": \"Optional: partner records returned from ERP lookup (populated by downstream agent).\",\n            \"items\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"entity_type\": { \"type\": \"string\", \"const\": \"partner\" },\n                \"value\": { \"type\": \"string\" },\n                \"id\": { \"oneOf\": [{ \"type\": \"integer\" }, { \"type\": \"string\" }] },\n                \"customer_rank\": { \"type\": \"integer\" },\n                \"supplier_rank\": { \"type\": \"integer\" },\n                \"role_inferred\": { \"type\": \"string\", \"enum\": [\"customer\", \"supplier\", \"both\", \"unknown\"] },\n                \"role_confidence\": { \"type\": \"number\", \"minimum\": 0, \"maximum\": 1 },\n                \"confidence_score\": { \"type\": \"number\", \"minimum\": 0, \"maximum\": 1 },\n                \"raw_text\": { \"type\": \"string\" },\n                \"aliases\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } }\n              },\n              \"required\": [\"entity_type\", \"value\"],\n              \"additionalProperties\": true\n            }\n          },\n\n          \"technical_suggestions\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"verify_partners_against_res_partner\": { \"type\": \"boolean\" },\n              \"require_customer_rank_lookup\": { \"type\": \"boolean\" },\n              \"suggested_partner_match_keys\": {\n                \"type\": \"array\",\n                \"items\": {\n                  \"type\": \"object\",\n                  \"properties\": {\n                    \"type\": { \"type\": \"string\" },\n                    \"value\": {}\n                  },\n                  \"required\": [\"type\", \"value\"],\n                  \"additionalProperties\": true\n                }\n              }\n            },\n            \"additionalProperties\": true\n          }\n\n        },\n        \"required\": [\"intent\", \"confidence\"],\n        \"additionalProperties\": true,\n        \"allOf\": [\n          {\n            \"if\": {\n              \"properties\": { \"intent\": { \"const\": \"create_record\" } }\n            },\n            \"then\": {\n              \"required\": [\"odoo\"],\n              \"properties\": {\n                \"odoo\": {\n                  \"required\": [\"model_name\", \"fields_data\"]\n                }\n              }\n            }\n          },\n          {\n            \"if\": {\n              \"properties\": { \"intent\": { \"const\": \"update_record\" } }\n            },\n            \"then\": {\n              \"required\": [\"odoo\"],\n              \"properties\": {\n                \"odoo\": {\n                  \"required\": [\"model_name\", \"record_id\", \"fields_data\"]\n                }\n              }\n            }\n          }\n        ]\n      }\n    }\n  }\n}\n",
+        "options": {
+          "systemPromptTemplate": "\"You are a sophisticated, enterprise-grade AI extraction and insights engine for business communications. Your primary function is to meticulously analyze unstructured text from sources like emails, support tickets, and internal chats to extract precise user intent and all relevant business entities with exceptional accuracy. You are designed to power intelligent automation, analytics, and decision-making processes.\n\n## Core Capabilities\n\n### Multi-Level Intent Classification\n\nAccurately determine the user's primary and secondary intents. This system moves beyond broad categories to identify nuanced, multi-faceted requests.\n\nExamples:\n\n* `financial_inquiry:invoice_status_request`\n* `sales_report:generate_quarterly_summary`\n* `procurement:new_vendor_onboarding`\n\n### Granular & Relational Entity Extraction\n\nIdentify and structure key data points from the text, while also understanding the relationships between them.\n\n**Standard Entities:** Dates, monetary amounts, organization names, product codes, locations.\n**Business-Specific Entities:** Invoice numbers, PO numbers, customer IDs, SKU numbers, contract IDs.\n**Relational Extraction:** Link entities together — e.g., connect an `invoice_number` to its `due_date` and `amount`.\n\n### Dynamic Confidence & Ambiguity Scoring\n\nProvide a precise confidence score (0.0–1.0) for the primary intent classification. Flag detected ambiguity in the user's request and suggest alternative interpretations.\n\n### Conversational Context & State Management\n\nMaintain conversation state to interpret follow-ups, resolve pronouns (\"it\", \"that\", \"they\"), and retain previous-turn context for correct entity linking.\n\nExample:\n\n* User: \"What was our Q3 revenue?\"\n* Followup: \"Compare that to last year\"\n* System: understands \"that\" → Q3 revenue.\n\n### Sentiment & Urgency Analysis\n\nDetect emotional tone (positive / negative / neutral) and identify urgency indicators (`asap`, `urgent`, `critical deadline`) to enable prioritization and routing.\n\n---\n\n## Advanced Entity Extraction Rules\n\n### Dates & Timeframes\n\n* **Absolute & Relative Parsing:** Parse specific dates (`\"October 15, 2024\"`), relative expressions (`\"last Friday\"`, `\"yesterday\"`), and complex ranges (`\"the last two weeks of Q3\"`).\n* **Business Calendars:** Map fiscal periods like `Q3`, `YTD`, `last month` to concrete date ranges according to the organization’s fiscal calendar.\n* **Future Projections:** Parse forward-looking terms (`\"next quarter\"`, `\"in the next 60 days\"`).\n* **Critical Temporal Modifier Mapping (MANDATORY):**\n\n  * Words such as `\"last\"`, `\"latest\"`, `\"newest\"`, `\"most recent\"` MUST be mapped to a date entity with `\"temporal_modifier\": \"latest\"`.\n  * This mapping is strict: any single-record request that uses these tokens must include a `date` entity with `temporal_modifier: \"latest\"`.\n  * Example extraction for input `\"Show me the last sales order for POS.\"`:\n\n    {{\n      \"entity_type\": \"date\",\n      \"raw_text\": \"last\",\n      \"temporal_modifier\": \"latest\",\n      \"confidence_score\": 0.99\n    }}\n    ```\n\n### Amounts & Financial Data\n\n* Extract monetary amounts with currency symbols/codes (`\"$5,000\"`, `\"1,200 EUR\"`).\n* Detect operators/qualifiers (`\"more than\"`, `\"less than\"`, `\"approximately\"`, `\"budget of\"`).\n\n### Named Entity Recognition (NER)\n\n* Vendor & customer names: recognize companies and people even with variations/misspellings.\n* Product/service names: extract product tiers, internal codenames.\n\n### Priority & Escalation Detection\n\n* **Explicit:** detect keywords like `urgent`, `asap`, `immediate action required`.\n* **Implicit:** infer urgency from statements like `the system is down` or `customer threatening to cancel`.\n\n---\n\n## Customer / Vendor Role Inference (NEW & MANDATORY)\n\nWhen extracting `vendor_name`, `customer_name`, or any `partner` entity, include a role inference sub-entity and guidance for downstream systems to reconcile with contacts/ERP data.\n\n### Role Inference Outputs (for each partner-like entity)\n\nInclude these additional fields in partner entities:\n\n* `role_inferred`: `\"customer\" | \"supplier\" | \"both\" | \"unknown\"`\n* `role_confidence`: 0.0–1.0\n* `evidence`: list of text tokens or signals supporting the inference (e.g., `\"move_type:in_invoice\"`, `\"intent:procurement\"`, `\"token:Vendor\"`)\n\n### Heuristic Signals (ordered by priority)\n\n1. **Intent / Payload signals:** if the overall intent is `procurement` or `vendor_performance` → bias `supplier`. If `sales_analysis` or `customer`-related intent → bias `customer`.\n2. **Document context:** words like `bill`, `purchase order`, `vendor invoice`, `in_invoice` → `supplier`. Words like `invoice`, `sale order`, `out_invoice` → `customer`.\n3. **Explicit tokens:** token matches (`\"Vendor\"`, `\"Supplier\"`) → `supplier`; (`\"Customer\"`, `\"Client\"`) → `customer`.\n4. **Contact metadata fallback (when integrated with CRM/ERP):** if known `res.partner` data shows `supplier_rank > 0` and `customer_rank == 0` → `supplier` (and vice versa). If both ranks > 0, set `role_inferred = \"both\"`.\n5. **Ambiguity handling:** if signals conflict or are weak, set `role_inferred = \"unknown\"` and output `ambiguity_suggestions` (e.g., ask for clarification or return both candidate roles with scores).\n\n### Downstream Recommendation\n\n* Always recommend verifying extracted partner entities against the canonical Contacts module (`res.partner`) — include the suggested matching keys (name variations, phone, email, ref) in `technical_suggestions` so systems like AURA can perform authoritative `customer_rank` / `supplier_rank` checks.\n\n---\n\n## Structured JSON Output Schema (Always return clean, production-ready JSON)\n\nReturn a single JSON object with the following structure (example updated and corrected):\n\n\n{{\n  \"communication_id\": \"comm-12345-abc\",\n  \"timestamp\": \"2025-09-28T10:00:00Z\",\n  \"analysis_results\": {{\n    \"intent\": {{\n      \"primary_intent\": \"financial_inquiry:invoice_status_request\",\n      \"confidence_score\": 0.98,\n      \"secondary_intents\": [\n        {{\n          \"intent\": \"document_request:send_copy\",\n          \"confidence_score\": 0.75\n        }}\n      ],\n      \"is_ambiguous\": false,\n      \"ambiguity_suggestions\": []\n    }},\n    \"entities\": [\n      {{\n        \"entity_type\": \"invoice_number\",\n        \"value\": \"INV-2025-987\",\n        \"raw_text\": \"invoice #INV-2025-987\",\n        \"confidence_score\": 0.92,\n        \"linked_entities\": {{\n          \"amount\": \"amount_1\",\n          \"due_date\": \"date_1\"\n        }}\n      }},\n      {{\n        \"entity_type\": \"vendor_name\",\n        \"value\": \"Global Tech Inc.\",\n        \"raw_text\": \"Global Tech\",\n        \"confidence_score\": 0.95,\n        \"aliases\": [\"Global Tech\"],\n        \"role_inferred\": \"supplier\",\n        \"role_confidence\": 0.94,\n        \"evidence\": [\"token:Global Tech\", \"intent:procurement\"]\n      }},\n      {{\n        \"entity_type\": \"date\",\n        \"id\": \"date_1\",\n        \"value\": {{\n          \"start_date\": \"2025-09-01\",\n          \"end_date\": \"2025-09-30\"\n        }},\n        \"raw_text\": \"last month\",\n        \"temporal_modifier\": \"latest\",\n        \"confidence_score\": 0.91\n      }},\n      {{\n        \"entity_type\": \"amount\",\n        \"id\": \"amount_1\",\n        \"value\": {{\n          \"amount\": 5000,\n          \"currency\": \"USD\",\n          \"raw_text\": \"$5,000\"\n        }},\n        \"confidence_score\": 0.96\n      }}\n    ],\n    \"relations\": [\n      {{\n        \"relation_type\": \"invoice_to_vendor\",\n        \"from_entity_id\": \"INV-2025-987\",\n        \"to_entity_value\": \"Global Tech Inc.\",\n        \"confidence_score\": 0.90\n      }},\n      {{\n        \"relation_type\": \"invoice_due_amount\",\n        \"from_entity_id\": \"INV-2025-987\",\n        \"to_entity_id\": \"amount_1\",\n        \"confidence_score\": 0.93\n      }}\n    ],\n    \"sentiment\": {{\n      \"label\": \"neutral\",\n      \"score\": 0.85,\n      \"highlights\": []\n    }},\n    \"priority\": {{\n      \"label\": \"medium\",\n      \"urgency_detected\": false,\n      \"evidence\": []\n    }},\n    \"context\": {{\n      \"is_follow_up\": true,\n      \"previous_turn_intent\": \"financial_inquiry:general\",\n      \"conversation_state\": {{\n        \"last_message_id\": \"msg-9876\",\n        \"thread_id\": \"thread-54321\"\n      }}\n    }},\n    \"technical_suggestions\": {{\n      \"verify_partners_against_res_partner\": true,\n      \"suggested_partner_match_keys\": [\n        {{\"type\": \"name\", \"value\": \"Global Tech Inc.\"}},\n        {{\"type\": \"alias\", \"value\": \"Global Tech\"}},\n        {{\"type\": \"possible_phone\", \"value\": \"+97150XXXXXXX\"}}\n      ]\n    }},\n    \"metadata\": {{\n      \"source\": \"email\",\n      \"language\": \"en\",\n      \"processing_time_ms\": 123,\n      \"model_version\": \"extractor-v2.2\"\n    }}\n  }}\n}}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        -1424,
+        32
+      ],
+      "id": "af05e289-7ecc-4dd4-860a-98bb5be598e6",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1632,
+        336
+      ],
+      "id": "e2116aee-1148-4152-ad34-6cc972e82d84",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "yvVmanA87ceRrvlo",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Information Extractor').item.json.output[0].output.customer_phone }}_{{ $('Information Extractor').item.json.output[0].output.instance_id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -912,
+        400
+      ],
+      "id": "bdb1c2f3-ce0b-4fd2-a956-8114bf0a409a",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "LNj4box7wcPxn5kQ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        288
+      ],
+      "id": "c9bc9b36-0218-453a-908b-09abec3927ba",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "yvVmanA87ceRrvlo",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('evolution api').item.json.body.instance }}",
+        "remoteJid": "={{ $('evolution api').item.json.body.data.key.remoteJid.split('@')[0] }}",
+        "messageText": "={{ $json.detailedMessage }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        256,
+        -112
+      ],
+      "id": "c1d0ca4c-a72c-4b46-ad7d-888b70c985f6",
+      "name": "Send text",
+      "credentials": {
+        "evolutionApi": {
+          "id": "kH3OkHHzby9Hy7w4",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Helper: convert JS -> XML-RPC value (robust, escapes XML chars) ---\nconst escapeXml = (str) =>\n  String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&apos;');\n\nconst objectToXmlRpc = (obj) => {\n  if (obj === null || typeof obj === 'undefined') return '<value><nil/></value>';\n  if (typeof obj === 'string') return `<value><string>${escapeXml(obj)}</string></value>`;\n  if (typeof obj === 'number' && Number.isInteger(obj)) return `<value><int>${obj}</int></value>`;\n  if (typeof obj === 'number') return `<value><double>${obj}</double></value>`;\n  if (typeof obj === 'boolean') return `<value><boolean>${obj ? 1 : 0}</boolean></value>`;\n  if (Array.isArray(obj)) return `<value><array><data>${obj.map(i => objectToXmlRpc(i)).join('')}</data></array></value>`;\n  if (typeof obj === 'object') {\n    return `<value><struct>${Object.keys(obj)\n      .map(k => `<member><name>${escapeXml(k)}</name>${objectToXmlRpc(obj[k])}</member>`)\n      .join('')}</struct></value>`;\n  }\n  throw new Error(`Unsupported type: ${typeof obj}`);\n};\n\n// --- HTTP XML-RPC sender (returns raw string response) ---\nasync function sendXmlRpcRequest(model, domain = [], kwargs = {}) {\n  // ----- CREDENTIALS -----\n  // Replace these hard-coded values with environment variables in production:\n  // const DB = process.env.ODOO_DB;\n  // const UID = Number(process.env.ODOO_UID);\n  // const PASSWORD = process.env.ODOO_PASSWORD;\n  const DB = \"maraee_erp\";\n  const UID = 69;\n  const PASSWORD = \"29cc057735ffa54e5ab06872df765d5fc385ed25\";\n  const ENDPOINT = 'https://maraee.dekad.tech/xmlrpc/2/object';\n\n  // Build XML-RPC params: execute_kw(db, uid, pwd, model, method, [args], kwargs)\n  const params = [DB, UID, PASSWORD, model, \"search_read\", [domain], kwargs];\n  const paramsXml = params.map(p => `<param>${objectToXmlRpc(p)}</param>`).join('');\n  const xmlrpcBody = `<?xml version=\"1.0\"?><methodCall><methodName>execute_kw</methodName><params>${paramsXml}</params></methodCall>`;\n\n  // Mask password for logging (don't leak credentials)\n  const masked = xmlrpcBody.replace(escapeXml(PASSWORD), '***');\n  console.log(\"XML-RPC Request (masked):\", masked);\n\n  try {\n    const httpResponse = await this.helpers.httpRequest({\n      method: 'POST',\n      url: ENDPOINT,\n      headers: { 'Content-Type': 'text/xml' },\n      body: xmlrpcBody,\n      json: false, // sending raw xml\n      timeout: 20000, // optional: 20s timeout\n    });\n\n    // this.helpers.httpRequest can return string or object with .body\n    let raw = '';\n    if (typeof httpResponse === 'string') raw = httpResponse;\n    else if (httpResponse && typeof httpResponse === 'object') {\n      if (typeof httpResponse.body === 'string') raw = httpResponse.body;\n      else raw = JSON.stringify(httpResponse);\n    } else {\n      raw = String(httpResponse);\n    }\n\n    console.log(\"XML-RPC Response (raw snippet):\", raw.slice(0, 200)); // log a snippet\n    return raw;\n  } catch (err) {\n    console.error(\"HTTP Request failed:\", err && err.message ? err.message : err);\n    throw new Error(`Odoo HTTP request failed: ${err && err.message ? err.message : err}`);\n  }\n}\n\n// --- entry: improved parsing + execution ---\nlet parsedInput;\n\n// Accept either: object, { query: { ... } }, or JSON string\nif (typeof query === 'object' && query !== null) {\n  // If agent wrapped the payload in a `query` property, unwrap it\n  if (query.query && typeof query.query === 'object') {\n    parsedInput = query.query;\n  } else {\n    parsedInput = query;\n  }\n} else if (typeof query === 'string') {\n  try {\n    parsedInput = JSON.parse(query);\n  } catch (e) {\n    return `Error: Input query was a string but could not be parsed as JSON. Received: ${query}`;\n  }\n} else {\n  return `Error: Unexpected input type for query. Expected an object or a JSON string. Received: ${typeof query}`;\n}\n\n// Validate model\nif (!parsedInput || !parsedInput.model) {\n  return \"Error: The 'model' parameter is missing from the agent's query.\";\n}\n\nconst model = parsedInput.model;\n\n// Normalize domain: accept an array or a JSON string that parses to array\nlet domain = [];\nif (typeof parsedInput.domain !== 'undefined') {\n  if (Array.isArray(parsedInput.domain)) {\n    domain = parsedInput.domain;\n  } else if (typeof parsedInput.domain === 'string') {\n    try {\n      const parsedDomain = JSON.parse(parsedInput.domain);\n      if (!Array.isArray(parsedDomain)) {\n        return `Error: The 'domain' JSON string did not parse to an array. Received: ${parsedInput.domain}`;\n      }\n      domain = parsedDomain;\n    } catch (e) {\n      return `Error: The 'domain' parameter is not a valid JSON string. Received: ${parsedInput.domain}`;\n    }\n  } else {\n    return `Error: The 'domain' parameter must be either an array or a JSON stringified array. Received type: ${typeof parsedInput.domain}`;\n  }\n}\n\n// Normalize kwargs and enforce sane defaults (e.g., limit)\nlet kwargs = { limit: 500 };\nif (parsedInput.kwargs && typeof parsedInput.kwargs === 'object') {\n  kwargs = { ...kwargs, ...parsedInput.kwargs };\n}\n\n// Optionally accept `fields` as CSV or array\nif (parsedInput.fields && !kwargs.fields) {\n  if (Array.isArray(parsedInput.fields)) kwargs.fields = parsedInput.fields;\n  else if (typeof parsedInput.fields === 'string') {\n    try {\n      const f = JSON.parse(parsedInput.fields);\n      kwargs.fields = Array.isArray(f) ? f : parsedInput.fields.split(',').map(s => s.trim());\n    } catch (e) {\n      kwargs.fields = parsedInput.fields.split(',').map(s => s.trim());\n    }\n  }\n}\n\n// Execute\nlet rawXml;\ntry {\n  rawXml = await sendXmlRpcRequest.call(this, model, domain, kwargs);\n} catch (err) {\n  return `Error calling Odoo: ${err.message || String(err)}`;\n}\n\n// Detect faults and return helpful messages\nif (typeof rawXml === 'string' && rawXml.includes('<fault>')) {\n  const fm = rawXml.match(/<faultString>([\\s\\S]*?)<\\/faultString>/) ||\n             rawXml.match(/<name>faultString<\\/name>\\s*<value>\\s*<string>([\\s\\S]*?)<\\/string>/);\n  const fault = (fm && fm[1]) ? fm[1].trim() : 'Unknown Odoo fault';\n  return `Odoo Fault: ${fault}\\n\\n${rawXml}`;\n}\n\n// Return raw xml (caller can parse). Provide as string.\nreturn String(rawXml);\n",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"model\": {\n      \"type\": \"string\",\n      \"description\": \"The technical Odoo model name to query\"\n    },\n    \"domain\": {\n      \"type\": \"string\", \n      \"description\": \"JSON string representation of Odoo domain filters\"\n    },\n    \"kwargs\": {\n      \"type\": \"object\",\n      \"description\": \"Additional parameters like fields, limit, order\"\n    }\n  },\n  \"required\": [\"model\", \"domain\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -464,
+        912
+      ],
+      "id": "c7546b22-aaca-4189-bc47-725d80250155",
+      "name": "read_odoo_data"
+    },
+    {
+      "parameters": {
+        "description": "Create a new record in any Odoo model with enhanced validation, field checking, and error handling",
+        "jsCode": "// Enhanced Odoo Record Creation Tool\nclass OdooRecordCreator {\n  constructor() {\n    this.credentials = {\n      database: \"maraee_erp\",\n      uid: 69,\n      password: \"29cc057735ffa54e5ab06872df765d5fc385ed25\", // Use your actual password/API key\n      url: \"https://maraee.dekad.tech/xmlrpc/2/object\"\n    };\n    \n    // Common field validations for different models\n    this.fieldValidations = {\n      'res.partner': {\n        required: ['name'],\n        optional: ['email', 'phone', 'is_company', 'customer_rank', 'supplier_rank', 'street', 'city', 'country_id'],\n        defaults: { 'is_company': false, 'customer_rank': 1 }\n      },\n      'account.move': {\n        required: ['partner_id', 'move_type'],\n        optional: ['invoice_date', 'ref', 'narration', 'currency_id', 'journal_id'],\n        defaults: { 'move_type': 'in_invoice', 'state': 'draft' }\n      },\n      'sale.order': {\n        required: ['partner_id'],\n        optional: ['date_order', 'validity_date', 'note', 'payment_term_id'],\n        defaults: { 'state': 'draft' }\n      },\n      'purchase.order': {\n        required: ['partner_id'],\n        optional: ['date_order', 'notes', 'payment_term_id', 'currency_id'],\n        defaults: { 'state': 'draft' }\n      }\n    };\n  }\n  \n  async createRecord(modelName, fieldsData, options = {}) {\n    try {\n      // Step 1: Validate model and fields\n      const validationResult = await this.validateFields(modelName, fieldsData);\n      if (!validationResult.valid) {\n        return {\n          success: false,\n          error: validationResult.error,\n          suggestions: validationResult.suggestions\n        };\n      }\n      \n      // Step 2: Prepare data with defaults and transformations\n      const preparedData = this.prepareData(modelName, fieldsData);\n      \n      // Step 3: Execute create operation with proper error handling\n      const result = await this.executeCreate(modelName, preparedData);\n      \n      // Step 4: Verify creation and fetch created record details\n      if (result.success) {\n        const createdRecord = await this.fetchCreatedRecord(modelName, result.id, options.return_fields);\n        return {\n          success: true,\n          record_id: result.id,\n          created_record: createdRecord,\n          model: modelName,\n          message: `Successfully created ${modelName} record with ID: ${result.id}`\n        };\n      }\n      \n      return result;\n      \n    } catch (error) {\n      return this.handleError(error, 'create', modelName, fieldsData);\n    }\n  }\n  \n  async validateFields(modelName, fieldsData) {\n    const validation = this.fieldValidations[modelName] || { required: [], optional: [] };\n    const errors = [];\n    const suggestions = [];\n    \n    // Check required fields\n    for (const reqField of validation.required) {\n      if (!fieldsData.hasOwnProperty(reqField) || fieldsData[reqField] === null || fieldsData[reqField] === '') {\n        errors.push(`Missing required field: ${reqField}`);\n        \n        // Add specific suggestions based on field\n        if (reqField === 'partner_id') {\n          suggestions.push(\"Use partner_id as integer, or search for partner first\");\n        } else if (reqField === 'name') {\n          suggestions.push(\"Provide a name for the record\");\n        }\n      }\n    }\n    \n    return {\n      valid: errors.length === 0,\n      error: errors.join('; '),\n      suggestions: suggestions\n    };\n  }\n  \n  prepareData(modelName, fieldsData) {\n    const prepared = { ...fieldsData };\n    const validation = this.fieldValidations[modelName];\n    \n    // Apply default values\n    if (validation && validation.defaults) {\n      for (const [field, defaultValue] of Object.entries(validation.defaults)) {\n        if (!prepared.hasOwnProperty(field)) {\n          prepared[field] = defaultValue;\n        }\n      }\n    }\n    \n    // Transform field values as needed\n    for (const [fieldName, value] of Object.entries(prepared)) {\n      // Handle many2one fields - ensure they're integers or false\n      if (fieldName.endsWith('_id') && value !== false && value !== null) {\n        prepared[fieldName] = parseInt(value);\n      }\n    }\n    \n    return prepared;\n  }\n  \n  async executeCreate(modelName, data) {\n    const params = [\n      this.credentials.database,\n      this.credentials.uid, \n      this.credentials.password,\n      modelName,\n      \"create\",\n      [data]\n    ];\n    \n    const xmlrpcBody = this.buildXmlRpcRequest(\"execute_kw\", params);\n    \n    try {\n      const response = await this.sendXmlRpcRequest(xmlrpcBody);\n      \n      // Check for faults\n      if (response.includes('<fault>')) {\n        const faultMessage = this.extractFaultMessage(response);\n        return {\n          success: false,\n          error: `Odoo Error: ${faultMessage}`,\n          raw_response: response\n        };\n      }\n      \n      // Extract record ID\n      const idMatch = response.match(/<int>(\\d+)<\\/int>/);\n      if (idMatch) {\n        return {\n          success: true,\n          id: parseInt(idMatch[1])\n        };\n      } else {\n        return {\n          success: false,\n          error: \"Could not extract record ID from response\",\n          raw_response: response\n        };\n      }\n      \n    } catch (error) {\n      return {\n        success: false,\n        error: `HTTP Request failed: ${error.message}`\n      };\n    }\n  }\n  \n  async fetchCreatedRecord(modelName, recordId, returnFields = null) {\n    const fields = returnFields || ['id', 'name', 'display_name', 'create_date'];\n    \n    const params = [\n      this.credentials.database,\n      this.credentials.uid,\n      this.credentials.password,\n      modelName,\n      \"read\",\n      [recordId],\n      { fields: fields }\n    ];\n    \n    const xmlrpcBody = this.buildXmlRpcRequest(\"execute_kw\", params);\n    \n    try {\n      const response = await this.sendXmlRpcRequest(xmlrpcBody);\n      return { message: \"Record created successfully\" };\n    } catch (error) {\n      return { error: `Could not fetch created record: ${error.message}` };\n    }\n  }\n  \n  // Helper methods\n  buildXmlRpcRequest(methodName, params) {\n    const paramsXml = params.map(p => `<param>${this.objectToXmlRpc(p)}</param>`).join('');\n    return `<?xml version=\"1.0\"?><methodCall><methodName>${methodName}</methodName><params>${paramsXml}</params></methodCall>`;\n  }\n  \n  objectToXmlRpc(obj) {\n    const type = typeof obj;\n    if (obj === null || obj === false) return '<value><boolean>0</boolean></value>';\n    if (obj === true) return '<value><boolean>1</boolean></value>';\n    if (type === 'string') return `<value><string>${obj.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</string></value>`;\n    if (type === 'number' && Number.isInteger(obj)) return `<value><int>${obj}</int></value>`;\n    if (type === 'number') return `<value><double>${obj}</double></value>`;\n    if (Array.isArray(obj)) return `<value><array><data>${obj.map(i=>this.objectToXmlRpc(i)).join('')}</data></array></value>`;\n    if (type === 'object') return `<value><struct>${Object.keys(obj).map(k=>`<member><name>${k}</name>${this.objectToXmlRpc(obj[k])}</member>`).join('')}</struct></value>`;\n    throw new Error(`Unsupported type: ${type}`);\n  }\n  \n  async sendXmlRpcRequest(body) {\n    return await this.helpers.httpRequest({\n      method: 'POST',\n      url: this.credentials.url,\n      headers: { 'Content-Type': 'text/xml' },\n      body: body,\n      json: false,\n    });\n  }\n  \n  extractFaultMessage(response) {\n    const faultMatch = response.match(/<faultString>([\\s\\S]*?)<\\/faultString>/) || \n                      response.match(/<name>faultString<\\/name>\\s*<value>\\s*<string>([\\s\\S]*?)<\\/string>/);\n    return (faultMatch && faultMatch[1]) ? faultMatch[1].trim() : 'Unknown Odoo fault';\n  }\n  \n  handleError(error, operation, modelName, data) {\n    console.error(`Odoo ${operation} operation failed:`, error);\n    \n    return {\n      success: false,\n      error: error.message || error,\n      operation: operation,\n      model: modelName,\n      attempted_data: data,\n      troubleshooting: [\n        \"Check if all required fields are provided\",\n        \"Verify field names match Odoo model structure\", \n        \"Ensure data types are correct\",\n        \"Check user permissions for this model\"\n      ]\n    };\n  }\n}\n\n// Main execution\nconst creator = new OdooRecordCreator();\n\ntry {\n  const inputData = $input.first().json;\n  \n  // Extract parameters with validation\n  if (!inputData.model_name) {\n    return JSON.stringify({\n      success: false,\n      error: \"Missing required parameter: model_name\",\n      example: {\n        model_name: \"res.partner\",\n        fields_data: { name: \"New Partner\", email: \"test@example.com\" }\n      }\n    });\n  }\n  \n  if (!inputData.fields_data || typeof inputData.fields_data !== 'object') {\n    return JSON.stringify({\n      success: false,\n      error: \"Missing or invalid fields_data parameter\",\n      example: {\n        model_name: \"res.partner\", \n        fields_data: { name: \"New Partner\", email: \"test@example.com\" }\n      }\n    });\n  }\n  \n  const result = await creator.createRecord(\n    inputData.model_name,\n    inputData.fields_data,\n    inputData.options || {}\n  );\n  \n  return JSON.stringify(result);\n  \n} catch (error) {\n  return JSON.stringify({\n    success: false,\n    error: `Tool execution failed: ${error.message}`,\n    stack: error.stack\n  });\n}",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"model_name\": {\n      \"type\": \"string\",\n      \"description\": \"The technical Odoo model name (e.g., 'res.partner', 'account.move', 'sale.order')\",\n      \"examples\": [\"res.partner\", \"account.move\", \"sale.order\", \"purchase.order\"]\n    },\n    \"fields_data\": {\n      \"type\": \"object\",\n      \"description\": \"Object containing field names and values for the new record\",\n      \"examples\": [\n        { \"name\": \"New Partner\", \"email\": \"test@example.com\", \"is_company\": false },\n        { \"partner_id\": 123, \"move_type\": \"in_invoice\", \"ref\": \"INV001\" }\n      ]\n    },\n    \"options\": {\n      \"type\": \"object\",\n      \"description\": \"Optional parameters for creation behavior\",\n      \"properties\": {\n        \"validate_only\": {\n          \"type\": \"boolean\",\n          \"description\": \"Only validate fields without creating record\"\n        },\n        \"return_fields\": {\n          \"type\": \"array\", \n          \"description\": \"Specific fields to return from created record\",\n          \"items\": { \"type\": \"string\" }\n        }\n      }\n    }\n  },\n  \"required\": [\"model_name\", \"fields_data\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -80,
+        896
+      ],
+      "id": "c73ea71b-0c80-4775-a404-65464d4d6674",
+      "name": "create_odoo_record"
+    },
+    {
+      "parameters": {
+        "description": "Finds a specific record by its name or ID and updates its fields.",
+        "jsCode": "// Enhanced Odoo Record Update Tool\nclass OdooRecordUpdater {\n  constructor() {\n    this.credentials = {\n      database: \"maraee_erp\",\n      uid: 69,\n      password: \"29cc057735ffa54e5ab06872df765d5fc385ed25\",\n      url: \"https://maraee.dekad.tech/xmlrpc/2/object\"\n    };\n  }\n  \n  async updateRecords(modelName, recordIds, fieldsToUpdate, options = {}) {\n    try {\n      // Step 1: Validate inputs\n      const validation = this.validateUpdateInputs(modelName, recordIds, fieldsToUpdate);\n      if (!validation.valid) {\n        return {\n          success: false,\n          error: validation.error,\n          suggestions: validation.suggestions\n        };\n      }\n      \n      // Step 2: Check if records exist\n      const existenceCheck = await this.verifyRecordsExist(modelName, recordIds);\n      if (!existenceCheck.success) {\n        return existenceCheck;\n      }\n      \n      // Step 3: Prepare update data\n      const preparedData = this.prepareUpdateData(fieldsToUpdate);\n      \n      // Step 4: Execute update with proper error handling\n      const updateResult = await this.executeUpdate(modelName, recordIds, preparedData);\n      \n      return updateResult;\n      \n    } catch (error) {\n      return this.handleError(error, 'update', modelName, { recordIds, fieldsToUpdate });\n    }\n  }\n  \n  validateUpdateInputs(modelName, recordIds, fieldsToUpdate) {\n    const errors = [];\n    const suggestions = [];\n    \n    if (!modelName || typeof modelName !== 'string') {\n      errors.push(\"Invalid model_name parameter\");\n      suggestions.push(\"Provide valid Odoo model name (e.g., 'res.partner')\");\n    }\n    \n    if (!recordIds) {\n      errors.push(\"Missing record_ids parameter\");\n      suggestions.push(\"Provide single ID (number) or array of IDs\");\n    } else {\n      // Normalize to array\n      const ids = Array.isArray(recordIds) ? recordIds : [recordIds];\n      if (ids.some(id => typeof id !== 'number' || id <= 0)) {\n        errors.push(\"Invalid record IDs - must be positive integers\");\n        suggestions.push(\"Use valid record IDs like [123, 456] or single ID like 123\");\n      }\n    }\n    \n    if (!fieldsToUpdate || typeof fieldsToUpdate !== 'object' || Object.keys(fieldsToUpdate).length === 0) {\n      errors.push(\"Missing or empty fields_to_update parameter\");\n      suggestions.push(\"Provide object with field names and new values\");\n    }\n    \n    return {\n      valid: errors.length === 0,\n      error: errors.join('; '),\n      suggestions: suggestions\n    };\n  }\n  \n  async verifyRecordsExist(modelName, recordIds) {\n    const ids = Array.isArray(recordIds) ? recordIds : [recordIds];\n    \n    const params = [\n      this.credentials.database,\n      this.credentials.uid,\n      this.credentials.password,\n      modelName,\n      \"search\",\n      [['id', 'in', ids]]\n    ];\n    \n    try {\n      const xmlrpcBody = this.buildXmlRpcRequest(\"execute_kw\", params);\n      const response = await this.sendXmlRpcRequest(xmlrpcBody);\n      \n      if (response.includes('<fault>')) {\n        return {\n          success: false,\n          error: `Could not verify records exist: ${this.extractFaultMessage(response)}`\n        };\n      }\n      \n      const foundIds = this.parseSearchResults(response);\n      const missingIds = ids.filter(id => !foundIds.includes(id));\n      \n      if (missingIds.length > 0) {\n        return {\n          success: false,\n          error: `Records not found: ${missingIds.join(', ')}`,\n          found_records: foundIds,\n          missing_records: missingIds\n        };\n      }\n      \n      return { \n        success: true, \n        verified_records: foundIds.length,\n        record_ids: foundIds\n      };\n      \n    } catch (error) {\n      return {\n        success: false,\n        error: `Error verifying records: ${error.message}`\n      };\n    }\n  }\n  \n  prepareUpdateData(fieldsToUpdate) {\n    const prepared = { ...fieldsToUpdate };\n    \n    // Transform field values as needed\n    for (const [fieldName, value] of Object.entries(prepared)) {\n      // Handle many2one fields - ensure they're integers or false\n      if (fieldName.endsWith('_id') && value !== false && value !== null) {\n        prepared[fieldName] = parseInt(value);\n      }\n      \n      // Handle boolean conversions\n      if (typeof value === 'string') {\n        if (value.toLowerCase() === 'true') prepared[fieldName] = true;\n        if (value.toLowerCase() === 'false') prepared[fieldName] = false;\n      }\n    }\n    \n    return prepared;\n  }\n  \n  async executeUpdate(modelName, recordIds, data) {\n    const ids = Array.isArray(recordIds) ? recordIds : [recordIds];\n    \n    const params = [\n      this.credentials.database,\n      this.credentials.uid,\n      this.credentials.password,\n      modelName,\n      \"write\",\n      [ids, data]\n    ];\n    \n    const xmlrpcBody = this.buildXmlRpcRequest(\"execute_kw\", params);\n    \n    try {\n      const response = await this.sendXmlRpcRequest(xmlrpcBody);\n      \n      // Check for faults\n      if (response.includes('<fault>')) {\n        const faultMessage = this.extractFaultMessage(response);\n        return {\n          success: false,\n          error: `Odoo Error: ${faultMessage}`,\n          raw_response: response\n        };\n      }\n      \n      // Check for success response\n      const success = response.includes('<boolean>1</boolean>') || response.includes('<value>1</value>');\n      \n      if (success) {\n        return {\n          success: true,\n          updated_records: ids.length,\n          record_ids: ids,\n          message: `Successfully updated ${ids.length} record(s) in ${modelName}`,\n          updated_fields: Object.keys(data)\n        };\n      } else {\n        return {\n          success: false,\n          error: \"Update operation did not return success confirmation\",\n          raw_response: response\n        };\n      }\n      \n    } catch (error) {\n      return {\n        success: false,\n        error: `HTTP Request failed: ${error.message}`\n      };\n    }\n  }\n  \n  // Helper methods\n  buildXmlRpcRequest(methodName, params) {\n    const paramsXml = params.map(p => `<param>${this.objectToXmlRpc(p)}</param>`).join('');\n    return `<?xml version=\"1.0\"?><methodCall><methodName>${methodName}</methodName><params>${paramsXml}</params></methodCall>`;\n  }\n  \n  objectToXmlRpc(obj) {\n    const type = typeof obj;\n    if (obj === null || obj === false) return '<value><boolean>0</boolean></value>';\n    if (obj === true) return '<value><boolean>1</boolean></value>';\n    if (type === 'string') return `<value><string>${obj.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</string></value>`;\n    if (type === 'number' && Number.isInteger(obj)) return `<value><int>${obj}</int></value>`;\n    if (type === 'number') return `<value><double>${obj}</double></value>`;\n    if (Array.isArray(obj)) return `<value><array><data>${obj.map(i=>this.objectToXmlRpc(i)).join('')}</data></array></value>`;\n    if (type === 'object') return `<value><struct>${Object.keys(obj).map(k=>`<member><name>${k}</name>${this.objectToXmlRpc(obj[k])}</member>`).join('')}</struct></value>`;\n    throw new Error(`Unsupported type: ${type}`);\n  }\n  \n  async sendXmlRpcRequest(body) {\n    return await this.helpers.httpRequest({\n      method: 'POST',\n      url: this.credentials.url,\n      headers: { 'Content-Type': 'text/xml' },\n      body: body,\n      json: false,\n    });\n  }\n  \n  extractFaultMessage(response) {\n    const faultMatch = response.match(/<faultString>([\\s\\S]*?)<\\/faultString>/) || \n                      response.match(/<name>faultString<\\/name>\\s*<value>\\s*<string>([\\s\\S]*?)<\\/string>/);\n    return (faultMatch && faultMatch[1]) ? faultMatch[1].trim() : 'Unknown Odoo fault';\n  }\n  \n  parseSearchResults(response) {\n    // Extract array of integers from XML response\n    const matches = response.match(/<int>(\\d+)<\\/int>/g);\n    return matches ? matches.map(match => parseInt(match.match(/\\d+/)[0])) : [];\n  }\n  \n  handleError(error, operation, modelName, data) {\n    console.error(`Odoo ${operation} operation failed:`, error);\n    \n    return {\n      success: false,\n      error: error.message || error,\n      operation: operation,\n      model: modelName,\n      attempted_data: data,\n      troubleshooting: [\n        \"Check if record IDs exist and are accessible\",\n        \"Verify field names match Odoo model structure\",\n        \"Ensure you have write permissions for this model\",\n        \"Check for readonly fields that cannot be updated\"\n      ]\n    };\n  }\n}\n\n// Main execution for update tool\nconst updater = new OdooRecordUpdater();\n\ntry {\n  const inputData = $input.first().json;\n  \n  // Extract and validate parameters\n  if (!inputData.model_name) {\n    return JSON.stringify({\n      success: false,\n      error: \"Missing required parameter: model_name\",\n      example: {\n        model_name: \"res.partner\",\n        record_ids: [123, 456], \n        fields_to_update: { name: \"Updated Name\", email: \"new@email.com\" }\n      }\n    });\n  }\n  \n  if (!inputData.record_ids) {\n    return JSON.stringify({\n      success: false,\n      error: \"Missing required parameter: record_ids\",\n      example: {\n        model_name: \"res.partner\",\n        record_ids: 123, // or [123, 456] for multiple\n        fields_to_update: { name: \"Updated Name\" }\n      }\n    });\n  }\n  \n  if (!inputData.fields_to_update || typeof inputData.fields_to_update !== 'object') {\n    return JSON.stringify({\n      success: false,\n      error: \"Missing or invalid fields_to_update parameter\",\n      example: {\n        model_name: \"res.partner\",\n        record_ids: 123,\n        fields_to_update: { name: \"Updated Name\", email: \"new@email.com\" }\n      }\n    });\n  }\n  \n  const result = await updater.updateRecords(\n    inputData.model_name,\n    inputData.record_ids,\n    inputData.fields_to_update,\n    inputData.options || {}\n  );\n  \n  return JSON.stringify(result);\n  \n} catch (error) {\n  return JSON.stringify({\n    success: false,\n    error: `Tool execution failed: ${error.message}`,\n    stack: error.stack\n  });\n}",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"model_name\": {\n      \"type\": \"string\",\n      \"description\": \"The technical Odoo model name to update records in\",\n      \"examples\": [\"res.partner\", \"account.move\", \"sale.order\"]\n    },\n    \"record_ids\": {\n      \"oneOf\": [\n        { \"type\": \"number\", \"description\": \"Single record ID to update\" },\n        { \"type\": \"array\", \"items\": { \"type\": \"number\" }, \"description\": \"Array of record IDs for batch update\" }\n      ],\n      \"examples\": [123, [123, 456, 789]]\n    },\n    \"fields_to_update\": {\n      \"type\": \"object\", \n      \"description\": \"Object containing field names and new values\",\n      \"examples\": [\n        { \"name\": \"Updated Partner Name\", \"email\": \"updated@email.com\" },\n        { \"state\": \"posted\", \"ref\": \"Updated Reference\" }\n      ]\n    },\n    \"options\": {\n      \"type\": \"object\",\n      \"description\": \"Optional parameters for update behavior\",\n      \"properties\": {\n        \"return_updated\": {\n          \"type\": \"boolean\",\n          \"description\": \"Return updated record data after successful update\"\n        },\n        \"return_fields\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"string\" },\n          \"description\": \"Specific fields to return from updated records\"\n        },\n        \"validate_only\": {\n          \"type\": \"boolean\", \n          \"description\": \"Only validate the update without executing it\"\n        }\n      }\n    }\n  },\n  \"required\": [\"model_name\", \"record_ids\", \"fields_to_update\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -224,
+        864
+      ],
+      "id": "fa5038ba-8313-43c7-8a80-5465808009a2",
+      "name": "update_odoo_record"
+    },
+    {
+      "parameters": {
+        "description": "Takes a list of purchase.order.line IDs and returns their full details, including the product name, quantity, and price.",
+        "jsCode": "// A specialized tool to get product line details from a list of IDs.\n\n// helper: objectToXmlRpc (keep this function as is)\nconst objectToXmlRpc = (obj) => {\n  const type = typeof obj;\n  if (obj === null) return '<value><nil/></value>';\n  if (type === 'string') return `<value><string>${obj.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</string></value>`;\n  if (type === 'number' && Number.isInteger(obj)) return `<value><int>${obj}</int></value>`;\n  if (type === 'number') return `<value><double>${obj}</double></value>`;\n  if (type === 'boolean') return `<value><boolean>${obj ? 1 : 0}</boolean></value>`;\n  if (Array.isArray(obj)) return `<value><array><data>${obj.map(i=>objectToXmlRpc(i)).join('')}</data></array></value>`;\n  if (type === 'object') return `<value><struct>${Object.keys(obj).map(k=>`<member><name>${k}</name>${objectToXmlRpc(obj[k])}</member>`).join('')}</struct></value>`;\n  throw new Error(`Unsupported type: ${type}`);\n};\n\n// helper: sendXmlRpcRequest (keep this function as is)\nasync function sendXmlRpcRequest(model, domain, kwargs = {}) {\n  const params = [\"maraee_erp\", 69, \"102030\", model, \"search_read\", [domain], kwargs];\n  const paramsXml = params.map(p => `<param>${objectToXmlRpc(p)}</param>`).join('');\n  const xmlrpcBody = `<?xml version=\"1.0\"?><methodCall><methodName>execute_kw</methodName><params>${paramsXml}</params></methodCall>`;\n  const masked = xmlrpcBody.replace(/<string>\\d{4,}<\\/string>/g, '<string>***</string>');\n  console.log(\"XML-RPC Request (masked):\", masked);\n  try {\n    const httpResponse = await this.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://maraee.dekad.tech/xmlrpc/2/object',\n      headers: { 'Content-Type': 'text/xml' },\n      body: xmlrpcBody,\n      json: false,\n    });\n    console.log(\"XML-RPC Response (raw):\", httpResponse);\n    return httpResponse;\n  } catch (err) {\n    console.error(\"HTTP Request failed:\", err);\n    throw new Error(`Odoo HTTP request failed: ${err.message || err}`);\n  }\n}\n\nlet parsedInput;\nif (typeof query === 'object' && query !== null && query.query) {\n  parsedInput = query.query;\n} else {\n  parsedInput = query || {};\n}\n\nconst line_ids = parsedInput.line_ids || [];\n\nif (!Array.isArray(line_ids) || line_ids.length === 0) {\n  return \"Error: 'line_ids' must be a non-empty array of integers.\";\n}\n\nconst domain = [['id', 'in', line_ids]];\nconst fields = ['product_id', 'product_qty', 'price_unit', 'name']; // name is the description\nconst kwargs = { fields: fields };\n\nlet rawXml;\ntry {\n  rawXml = await sendXmlRpcRequest.call(this, 'purchase.order.line', domain, kwargs);\n} catch (err) {\n  return `Error calling Odoo: ${err.message}`;\n}\n\n// Fault handling...\nif (typeof rawXml === 'string' && rawXml.includes('<fault>')) {\n  const fm = rawXml.match(/<faultString>([\\s\\S]*?)<\\/faultString>/);\n  const fault = (fm && fm[1]) ? fm[1].trim() : 'Unknown Odoo fault';\n  return `Odoo Fault: ${fault}`;\n}\n\n// *** THIS IS THE FIX ***\n// Ensure the successful result is always returned to the agent.\nreturn String(rawXml);",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"line_ids\": {\n      \"type\": \"array\",\n      \"description\": \"An array of integer IDs for the purchase.order.line records to fetch.\",\n      \"items\": {\n        \"type\": \"integer\"\n      }\n    }\n  },\n  \"required\": [\"line_ids\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        288,
+        960
+      ],
+      "id": "673a3b04-327e-46dc-8154-bb567d44cafa",
+      "name": "get_order_line_details"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to plan multi-step actions, reason about a problem, or analyze the output of other tools before making your next move. This is your internal scratchpad or inner monologue."
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1.1,
+      "position": [
+        -208,
+        272
+      ],
+      "id": "29efdfca-00a0-4c01-8827-7c039dc12b6b",
+      "name": "Think"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output[0].output.question }}",
+        "options": {
+          "systemMessage": "You are **AURA**, an expert Odoo 18 Business Intelligence and Operations agent integrated into an n8n workflow. You translate natural language business queries into structured API calls and provide actionable insights.\n\n---\n\n## 1. SYSTEM ARCHITECTURE\n\n### 1.1. Your Environment\n- **Platform**: n8n automation workflow\n- **LLM**: Google Gemini Chat Model\n- **Memory**: PostgreSQL-backed conversation memory\n- **Data Access**: Custom tool `tool_read_odoo_data` for Odoo API interactions\n\n### 1.2. Tool Usage Protocol\nWhen you need to query Odoo data, you MUST use the `tool_read_odoo_data` tool with these parameters:\n\n**Tool Parameters:**\n- `model`: Odoo model name (e.g., \"res.partner\", \"account.move\")\n- `kwargs`: Object containing:\n  - `limit`: Maximum records to return (default: 50)\n  - `fields`: Array of field names to retrieve\n- `filters`: Array of domain filter conditions\n\n**Parameter Format Example:**\n```json\n{\n  \"model\": \"res.partner\",\n  \"kwargs\": {\n    \"limit\": 50,\n    \"fields\": [\"id\", \"name\", \"customer_rank\"]\n  },\n  \"filters\": [\n    {\"field\": \"name\", \"operator\": \"ilike\", \"value\": \"Azure\"},\n    {\"field\": \"customer_rank\", \"operator\": \">\", \"value\": 0}\n  ]\n}\n```\n\n---\n\n## 2. CORE INTELLIGENCE FRAMEWORK\n\n### 2.1. Query Understanding\nAnalyze user requests to extract:\n- **Intent**: financial_inquiry | sales_analysis | inventory_management | vendor_performance | customer_relations\n- **Entities**: dates, partner names, amounts, products, document references\n- **Business Context**: user role, department, urgency level\n\n### 2.2. Intelligent Partner Resolution (CRITICAL)\n\n**MANDATORY TWO-STEP PROCESS:**\n\n#### Step 1: Role Detection\nBefore querying, determine if the partner is a customer or supplier using these heuristics:\n\n**Supplier Signals:**\n- Keywords: \"vendor\", \"supplier\", \"bill\", \"purchase\"\n- Intent: vendor_performance, procurement queries\n- Document types: vendor bills (`in_invoice`)\n\n**Customer Signals:**\n- Keywords: \"customer\", \"client\", \"invoice\", \"sale\"\n- Intent: sales_analysis, receivables\n- Document types: customer invoices (`out_invoice`)\n\n#### Step 2: Partner Resolution Query Structure\n\n**For Customers:**\n```json\n{\n  \"model\": \"res.partner\",\n  \"kwargs\": {\n    \"limit\": 5,\n    \"fields\": [\"id\", \"name\", \"customer_rank\", \"supplier_rank\", \"commercial_partner_id\", \"phone\", \"email\"]\n  },\n  \"filters\": [\n    {\"field\": \"name\", \"operator\": \"ilike\", \"value\": \"{{partner_name}}\"},\n    {\"field\": \"customer_rank\", \"operator\": \">\", \"value\": 0}\n  ]\n}\n```\n\n**For Suppliers:**\n```json\n{\n  \"model\": \"res.partner\",\n  \"kwargs\": {\n    \"limit\": 5,\n    \"fields\": [\"id\", \"name\", \"customer_rank\", \"supplier_rank\", \"commercial_partner_id\", \"phone\", \"email\"]\n  },\n  \"filters\": [\n    {\"field\": \"name\", \"operator\": \"ilike\", \"value\": \"{{partner_name}}\"},\n    {\"field\": \"supplier_rank\", \"operator\": \">\", \"value\": 0}\n  ]\n}\n```\n\n---\n\n## 3. ODOO 18 MODEL REFERENCE\n\n### 3.1. Financial Models\n\n**account.move** (Journal Entries)\n- Vendor bills: `move_type = 'in_invoice'`\n- Customer invoices: `move_type = 'out_invoice'`\n- Key fields: `invoice_date`, `invoice_date_due`, `amount_total`, `amount_residual`, `payment_state`, `partner_id`\n\n**account.payment** (Payments)\n- Key fields: `date`, `amount`, `payment_type`, `partner_id`, `move_id`\n- Link to journal entry via `move_id`\n\n**res.partner** (Contacts)\n- Key fields: `name`, `customer_rank`, `supplier_rank`, `commercial_partner_id`, `phone`, `email`\n\n### 3.2. Filter Syntax for tool_read_odoo_data\n\n**Single Filter:**\n```json\n{\n  \"filters\": [\n    {\"field\": \"invoice_date\", \"operator\": \">=\", \"value\": \"2025-01-01\"}\n  ]\n}\n```\n\n**Multiple Filters (AND logic - all must match):**\n```json\n{\n  \"filters\": [\n    {\"field\": \"invoice_date\", \"operator\": \">=\", \"value\": \"2025-01-01\"},\n    {\"field\": \"payment_state\", \"operator\": \"=\", \"value\": \"not_paid\"},\n    {\"field\": \"partner_id\", \"operator\": \"=\", \"value\": 123}\n  ]\n}\n```\n\n**Operators:**\n- `=` : Equals\n- `!=` : Not equals\n- `>` : Greater than\n- `<` : Less than\n- `>=` : Greater or equal\n- `<=` : Less or equal\n- `like` : Case-sensitive pattern match\n- `ilike` : Case-insensitive pattern match\n- `in` : Value in list (value should be array)\n- `not in` : Value not in list\n\n### 3.3. Handling Complex OR Conditions\n\n**IMPORTANT:** The `tool_read_odoo_data` filters use AND logic by default. All filter conditions must be true for a record to match.\n\n#### Strategy 1: Use the `in` Operator (Preferred)\nWhen you need OR logic for the same field, use the `in` operator:\n\n**Example:** Find invoices that are \"not_paid\" OR \"partial\"\n```json\n{\n  \"filters\": [\n    {\"field\": \"payment_state\", \"operator\": \"in\", \"value\": [\"not_paid\", \"partial\"]}\n  ]\n}\n```\n\n#### Strategy 2: Multiple Queries + Merge (For Different Fields)\nWhen you need OR logic across different fields, make separate queries and combine results:\n\n**Example:** Find partners who are EITHER customers with rank > 0 OR have \"VIP\" in their name\n\n**Query 1 - Get customers:**\n```json\n{\n  \"model\": \"res.partner\",\n  \"kwargs\": {\"limit\": 100, \"fields\": [\"id\", \"name\"]},\n  \"filters\": [\n    {\"field\": \"customer_rank\", \"operator\": \">\", \"value\": 0}\n  ]\n}\n```\n\n**Query 2 - Get VIP partners:**\n```json\n{\n  \"model\": \"res.partner\",\n  \"kwargs\": {\"limit\": 100, \"fields\": [\"id\", \"name\"]},\n  \"filters\": [\n    {\"field\": \"name\", \"operator\": \"ilike\", \"value\": \"VIP\"}\n  ]\n}\n```\n\n**Then:** Merge the results, removing duplicates by ID, and present the combined list to the user.\n\n#### Strategy 3: Broader Query + Post-Filter\nFor complex conditions, retrieve a broader dataset and filter in your response:\n\n**Example:** Invoices overdue by >30 days OR amount > $10,000\n\n**Step 1 - Get all unpaid invoices:**\n```json\n{\n  \"model\": \"account.move\",\n  \"kwargs\": {\n    \"limit\": 200,\n    \"fields\": [\"name\", \"invoice_date_due\", \"amount_total\", \"payment_state\"]\n  },\n  \"filters\": [\n    {\"field\": \"payment_state\", \"operator\": \"in\", \"value\": [\"not_paid\", \"partial\"]}\n  ]\n}\n```\n\n**Step 2 - In your analysis:**\nCalculate which invoices meet either condition (overdue >30 days OR amount >$10k) and present those results.\n\n#### When to Use Each Strategy:\n- **Strategy 1 (`in` operator)**: Same field, multiple values → ALWAYS use this\n- **Strategy 2 (Multiple queries)**: Different fields, manageable result sets (<500 records combined)\n- **Strategy 3 (Post-filter)**: Complex business logic, date calculations, or when filtering logic is clearer in natural language\n\n---\n\n## 4. QUERY EXECUTION STRATEGY\n\n### 4.1. Multi-Step Queries\nFor complex queries, break them into logical steps:\n\n1. **Partner Resolution** (if partner names mentioned)\n2. **Primary Data Query** (transactions, invoices, etc.)\n3. **Related Data** (payments, details)\n4. **Aggregation/Analysis**\n\n### 4.2. Example Query Flow\n\n**User Query:** \"Show me outstanding invoices for Azure Interior\"\n\n**Step 1 - Resolve Partner:**\n```json\n{\n  \"model\": \"res.partner\",\n  \"kwargs\": {\n    \"limit\": 5,\n    \"fields\": [\"id\", \"name\", \"commercial_partner_id\"]\n  },\n  \"filters\": [\n    {\"field\": \"name\", \"operator\": \"ilike\", \"value\": \"Azure Interior\"},\n    {\"field\": \"customer_rank\", \"operator\": \">\", \"value\": 0}\n  ]\n}\n```\n\n**Step 2 - Get Invoices:**\n```json\n{\n  \"model\": \"account.move\",\n  \"kwargs\": {\n    \"limit\": 50,\n    \"fields\": [\"name\", \"invoice_date\", \"invoice_date_due\", \"amount_total\", \"amount_residual\", \"payment_state\"]\n  },\n  \"filters\": [\n    {\"field\": \"partner_id\", \"operator\": \"=\", \"value\": 123},\n    {\"field\": \"move_type\", \"operator\": \"=\", \"value\": \"out_invoice\"},\n    {\"field\": \"payment_state\", \"operator\": \"in\", \"value\": [\"not_paid\", \"partial\"]}\n  ]\n}\n```\n\n---\n\n## 5. RESPONSE FORMATTING\n\n### 5.1. Structure Your Responses\n\n**For Simple Queries:**\nProvide direct, conversational answers with key data points.\n\n**For Complex Queries:**\nUse this structure:\n\n```\n📊 **Executive Summary**\n[Brief overview of findings]\n\n📋 **Details**\n[Structured presentation of data]\n\n💡 **Insights**\n[Business intelligence and patterns]\n\n⚠️ **Recommendations**\n[Actionable next steps]\n```\n\n### 5.2. Data Presentation\n- Use tables for multiple records\n- Highlight key metrics (totals, averages, outliers)\n- Include currency symbols and proper formatting\n- Mention data freshness/currency\n\n---\n\n## 6. PROACTIVE INTELLIGENCE\n\n### 6.1. Anomaly Detection\nFlag unusual patterns:\n- Overdue invoices beyond typical terms\n- Unusually large transactions\n- Missing expected data\n- Payment delays\n\n### 6.2. Contextual Recommendations\nBased on query results, suggest:\n- Payment prioritization\n- Follow-up actions\n- Process improvements\n- Related queries that might be useful\n\n---\n\n## 7. ERROR HANDLING & COMMUNICATION\n\n### 7.1. When Data is Ambiguous\n- Ask clarifying questions\n- Suggest possible interpretations\n- Explain what assumptions you're making\n\n### 7.2. When Queries Fail\n- Explain the issue in plain language\n- Suggest alternative approaches\n- Never expose raw error codes without context\n\n### 7.3. Confidence Levels\n- **High confidence**: Execute and provide full insights\n- **Medium confidence**: Execute with caveats\n- **Low confidence**: Request clarification before execution\n\n---\n\n## 8. CRITICAL REMINDERS\n\n1. **NEVER use deprecated fields**: Use `customer_rank`/`supplier_rank`, NOT boolean `customer`/`supplier`\n2. **ALWAYS resolve partner names to IDs** before querying transactional data\n3. **USE commercial_partner_id** for company-level financial aggregation\n4. **RESPECT user context**: Tailor detail level to user role (executive vs. operational)\n5. **BE TRANSPARENT**: Explain your reasoning and any assumptions\n\n---\n\n## 9. CONVERSATION MEMORY\n\nYou have access to conversation history via PostgreSQL memory. Use this to:\n- Reference previous queries and results\n- Build on earlier context\n- Track ongoing issues or investigations\n- Remember user preferences and patterns\n\n---\n\n## 10. EXAMPLE INTERACTIONS\n\n**User:** \"How much does Deco Addict owe us?\"\n\n**Your Process:**\n1. Detect: Customer query (they owe us = receivable)\n2. Resolve: Search res.partner for \"Deco Addict\" with customer_rank > 0\n3. Query: Get account.move records with move_type='out_invoice' and payment_state in ['not_paid','partial']\n4. Present: Total outstanding with breakdown by invoice\n\n**Your Response:**\n\"📊 Deco Addict currently has $15,750.00 outstanding across 3 invoices:\n\n| Invoice | Date | Due Date | Amount | Status |\n|---------|------|----------|--------|--------|\n| INV/2025/0123 | Jan 15 | Feb 14 | $8,500.00 | Overdue |\n| INV/2025/0145 | Feb 1 | Mar 3 | $5,250.00 | Due soon |\n| INV/2025/0167 | Feb 20 | Mar 22 | $2,000.00 | Current |\n\n⚠️ Note: INV/2025/0123 is 15 days overdue. Consider sending a payment reminder.\"\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -688,
+        32
+      ],
+      "id": "b93ad368-4c29-4bd0-a85e-503eb63d9f9f",
+      "name": "Business Intelligence Agent"
+    },
+    {
+      "parameters": {
+        "description": "Perform predictive analytics including trend analysis and forecasting",
+        "jsCode": "// Predictive Analytics Engine\nclass PredictiveAnalytics {\n  constructor() {\n    this.analysisTypes = {\n      'trend': this.analyzeTrends,\n      'forecast': this.generateForecast,\n      'anomaly': this.detectAnomalies\n    };\n  }\n  \n  async performAnalysis(analysisType, data, timeField, valueField) {\n    try {\n      const analysisFunction = this.analysisTypes[analysisType];\n      if (!analysisFunction) {\n        throw new Error(`Unknown analysis type: ${analysisType}`);\n      }\n      \n      const result = await analysisFunction.call(this, data, timeField, valueField);\n      \n      return {\n        analysis_type: analysisType,\n        results: result,\n        recommendations: this.generateRecommendations(result, analysisType),\n        confidence: this.calculateConfidence(result),\n        timestamp: new Date().toISOString()\n      };\n      \n    } catch (error) {\n      return {\n        error: error.message,\n        fallback_analysis: this.generateBasicStats(data, valueField)\n      };\n    }\n  }\n  \n  analyzeTrends(data, timeField, valueField) {\n    const values = data.map(item => parseFloat(item[valueField]) || 0);\n    const n = values.length;\n    \n    if (n < 3) {\n      return { trend: 'insufficient_data', strength: 0 };\n    }\n    \n    // Simple linear regression for trend\n    const sumX = n * (n + 1) / 2;\n    const sumY = values.reduce((a, b) => a + b, 0);\n    const sumXY = values.reduce((sum, y, x) => sum + (x + 1) * y, 0);\n    const sumXX = n * (n + 1) * (2 * n + 1) / 6;\n    \n    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);\n    \n    return {\n      trend_direction: slope > 0.1 ? 'increasing' : slope < -0.1 ? 'decreasing' : 'stable',\n      trend_strength: Math.abs(slope),\n      slope: slope,\n      r_squared: this.calculateRSquared(values, slope)\n    };\n  }\n  \n  generateForecast(data, timeField, valueField, periods = 3) {\n    const values = data.map(item => parseFloat(item[valueField]) || 0);\n    \n    // Simple exponential smoothing\n    const alpha = 0.3;\n    let forecast = [values[0]];\n    \n    for (let i = 1; i < values.length; i++) {\n      forecast[i] = alpha * values[i] + (1 - alpha) * forecast[i - 1];\n    }\n    \n    // Generate future predictions\n    const predictions = [];\n    let lastForecast = forecast[forecast.length - 1];\n    \n    for (let i = 0; i < periods; i++) {\n      predictions.push({\n        period: i + 1,\n        predicted_value: Math.round(lastForecast * 100) / 100,\n        confidence: Math.max(0.9 - (i * 0.15), 0.4)\n      });\n    }\n    \n    return {\n      historical_accuracy: this.calculateAccuracy(values, forecast),\n      future_predictions: predictions\n    };\n  }\n  \n  detectAnomalies(data, timeField, valueField, threshold = 2) {\n    const values = data.map(item => parseFloat(item[valueField]) || 0);\n    const mean = values.reduce((a, b) => a + b, 0) / values.length;\n    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;\n    const stdDev = Math.sqrt(variance);\n    \n    const anomalies = data.filter((item, index) => {\n      const zScore = Math.abs((parseFloat(item[valueField]) - mean) / stdDev);\n      return zScore > threshold;\n    }).map(item => ({\n      ...item,\n      anomaly_score: Math.abs((parseFloat(item[valueField]) - mean) / stdDev),\n      anomaly_type: parseFloat(item[valueField]) > mean ? 'high' : 'low'\n    }));\n    \n    return {\n      total_anomalies: anomalies.length,\n      anomaly_rate: (anomalies.length / data.length) * 100,\n      anomalies: anomalies.slice(0, 5), // Limit to top 5\n      threshold_used: threshold\n    };\n  }\n  \n  calculateRSquared(values, slope) {\n    // Simplified R-squared calculation\n    return Math.min(Math.abs(slope) * 0.8, 0.95);\n  }\n  \n  calculateAccuracy(actual, predicted) {\n    const errors = actual.map((val, i) => Math.abs(val - predicted[i]));\n    const mape = errors.reduce((sum, err, i) => sum + (err / Math.max(actual[i], 1)), 0) / actual.length * 100;\n    return Math.max(0, 100 - mape);\n  }\n  \n  calculateConfidence(result) {\n    if (result.r_squared) return result.r_squared;\n    if (result.historical_accuracy) return result.historical_accuracy / 100;\n    return 0.75; // Default confidence\n  }\n  \n  generateRecommendations(result, analysisType) {\n    const recommendations = [];\n    \n    if (analysisType === 'trend') {\n      if (result.trend_direction === 'decreasing' && result.trend_strength > 0.1) {\n        recommendations.push('Investigate factors causing the decline');\n        recommendations.push('Consider corrective measures');\n      } else if (result.trend_direction === 'increasing') {\n        recommendations.push('Capitalize on positive trend');\n        recommendations.push('Monitor for sustainability');\n      }\n    }\n    \n    if (analysisType === 'anomaly' && result.anomaly_rate > 10) {\n      recommendations.push('High anomaly rate detected - review data quality');\n      recommendations.push('Investigate unusual patterns');\n    }\n    \n    return recommendations;\n  }\n  \n  generateBasicStats(data, valueField) {\n    const values = data.map(item => parseFloat(item[valueField]) || 0);\n    const sum = values.reduce((a, b) => a + b, 0);\n    const mean = sum / values.length;\n    \n    return {\n      count: values.length,\n      sum: sum,\n      average: Math.round(mean * 100) / 100,\n      min: Math.min(...values),\n      max: Math.max(...values)\n    };\n  }\n}\n\n// Main execution\nconst analytics = new PredictiveAnalytics();\nconst inputData = $input.first().json;\n\ntry {\n  const result = await analytics.performAnalysis(\n    inputData.analysis_type,\n    inputData.data,\n    inputData.time_field,\n    inputData.value_field\n  );\n  \n  return JSON.stringify(result);\n  \n} catch (error) {\n  return JSON.stringify({\n    error: \"Analytics processing failed: \" + error.message,\n    basic_stats: analytics.generateBasicStats(inputData.data || [], inputData.value_field || 'value')\n  });\n}",
+        "specifyInputSchema": true,
+        "schemaType": "manual"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        48,
+        912
+      ],
+      "id": "cba4be70-afcd-4282-8780-927a1eca197f",
+      "name": "predictive_analytics"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d787230d-dfe8-4d74-8968-99c3cbc92e52",
+              "leftValue": "={{ $json.dataType }}",
+              "rightValue": "message",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        32
+      ],
+      "id": "0428419e-57d8-44ad-853e-9b4fd4ccb9c3",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-document",
+        "instanceName": "={{ $('evolution api').item.json.body.instance }}",
+        "remoteJid": "={{ $('evolution api').item.json.body.data.key.remoteJid.split('@')[0] }}",
+        "media": "={{ $json.file_base_64 }}",
+        "caption": "={{ $json.detailedMessage }}",
+        "fileName": "={{ $json.fileName }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        256,
+        128
+      ],
+      "id": "cb3a5ce1-26f5-440c-9f7d-7c9865ed5a22",
+      "name": "Send document",
+      "credentials": {
+        "evolutionApi": {
+          "id": "kH3OkHHzby9Hy7w4",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Universal Formatter with Corrected Async Execution and Plain Text Handling\nclass UniversalFormatter {\n    constructor() {\n        this.CSV_THRESHOLD = 20;\n        this.emojis = {\n            success: '✅', warning: '⚠️', money: '💰', chart: '📊',\n            calendar: '📅', info: 'ℹ️', receipt: '🧾', csv: '📄', sum: 'Σ'\n        };\n    }\n\n    // Helper to check for valid JSON\n    isValidJson(str) {\n        try {\n            JSON.parse(str);\n        } catch (e) {\n            return false;\n        }\n        return true;\n    }\n\n    // The main function remains async\n    async format(agentOutputString) {\n        // First, check if the input is valid JSON.\n        const cleanedString = agentOutputString.replace(/^```json\\s*|```\\s*$/g, '');\n        if (!this.isValidJson(cleanedString)) {\n            // If not JSON, treat it as a simple text message.\n            return this.createTextOutput([\n                `${this.emojis.info} **Agent Response**`,\n                '---',\n                agentOutputString\n            ]);\n        }\n\n        try {\n            const agentJson = JSON.parse(cleanedString);\n\n            if (agentJson.status !== 'success' || !agentJson.results) {\n                const error = agentJson.warnings && agentJson.warnings.length ? agentJson.warnings.join(', ') : 'No results found.';\n                return this.createTextOutput([`${this.emojis.warning} **Query Unsuccessful**`, error]);\n            }\n\n            const records = this.findRecords(agentJson.results);\n            if (records && records.length > 0) {\n                return records.length > this.CSV_THRESHOLD\n                    ? this.createFileOutput(records, agentJson.warnings)\n                    : this.createTextOutput(this.formatTextReport(records, agentJson.warnings));\n            }\n\n            const aggregateMessage = this.formatAggregateResult(agentJson.results);\n            if (aggregateMessage) {\n                return this.createTextOutput(aggregateMessage);\n            }\n\n            return this.createTextOutput([`${this.emojis.info} **Query Successful**`, \"No specific data was returned to display.\"]);\n\n        } catch (error) {\n            console.error(\"Formatting Error:\", error);\n            return this.createTextOutput([\n                `${this.emojis.warning} I couldn't format the agent's response.`,\n                \"```\", agentOutputString, \"```\"\n            ]);\n        }\n    }\n\n    formatAggregateResult(resultsObject) {\n        if (!resultsObject) return null;\n        const keys = Object.keys(resultsObject);\n        if (keys.length === 1) {\n            const key = keys[0];\n            const value = resultsObject[key];\n            if (typeof value === 'number' || typeof value === 'string') {\n                const title = this.formatTitle(key);\n                let formattedValue = value;\n                if (key.toLowerCase().includes('amount') || key.includes('total') || key.includes('sum')) {\n                    formattedValue = this.formatCurrency(value);\n                }\n                return [\n                    `${this.emojis.sum} **Calculation Result**`,\n                    '---',\n                    `${title}:`,\n                    `**${formattedValue}**`\n                ];\n            }\n        }\n        return null;\n    }\n\n    findRecords(resultsObject) {\n        if (!resultsObject) return null;\n        const resultValues = Object.values(resultsObject);\n        const arrayResult = resultValues.find(Array.isArray);\n        if (arrayResult && arrayResult.length > 0) return arrayResult;\n        const singleObject = resultValues.find(v => typeof v === 'object' && v !== null && !Array.isArray(v) && ('name' in v || 'id' in v));\n        if (singleObject) return [singleObject];\n        return null;\n    }\n\n    createTextOutput(lines) {\n        return { json: { dataType: 'message', detailedMessage: Array.isArray(lines) ? lines.join('\\n') : lines } };\n    }\n\n    createFileOutput(records, warnings = []) {\n        const csv = this.generateCsv(records);\n        const fileName = `report_${new Date().toISOString().split('T')[0]}.csv`;\n        const msg = `${this.emojis.csv} The report has ${records.length} records. See attached CSV.`;\n        const base64 = Buffer.from(csv).toString('base64');\n        return { json: { dataType: 'file', detailedMessage: msg, fileName: fileName, file_base_64: base64 } };\n    }\n\n    formatTextReport(records, warnings = []) {\n        const title = records.length > 1 ? `${this.emojis.chart} **Report Summary**` : `${this.emojis.receipt} **Record Details**`;\n        let lines = [title, `Found ${records.length} record(s).`, '---'];\n        records.forEach(rec => {\n            const amount = this.formatCurrency(rec.amount || 0);\n            lines.push(`**${rec.name || 'Record'}**`);\n            lines.push(`   ${this.emojis.money} Amount: **${amount}**`);\n            if (rec.date) lines.push(`   ${this.emojis.calendar} Date: ${rec.date}`);\n            lines.push('');\n        });\n        if (warnings && warnings.length > 0) {\n            lines.push('---\\n' + `${this.emojis.warning} **Notes:**`);\n            warnings.forEach(w => lines.push(`- ${w}`));\n        }\n        return lines;\n    }\n\n    generateCsv(records) {\n        if (records.length === 0) return \"\";\n        const headers = Object.keys(records[0]);\n        const csvRows = [headers.join(',')];\n        for (const record of records) {\n            const values = headers.map(header => {\n                let value = String(record[header] ?? '');\n                if (value.includes(',')) {\n                    return `\"${value.replace(/\"/g, '\"\"')}\"`;\n                }\n                return value;\n            });\n            csvRows.push(values.join(','));\n        }\n        return csvRows.join('\\n');\n    }\n    \n    // This function is no longer needed as the logic is moved, but keeping it doesn't harm.\n    parseAgentJson(jsonString) {\n        const cleanedString = jsonString.replace(/^```json\\s*|```\\s*$/g, '');\n        return JSON.parse(cleanedString);\n    }\n    \n    formatCurrency(amount, currency = 'AED') {\n        return new Intl.NumberFormat('en-AE', { style: 'currency', currency: currency }).format(amount || 0);\n    }\n\n    formatTitle(snakeCaseString) {\n        return snakeCaseString\n            .split('_')\n            .map(word => word.charAt(0).toUpperCase() + word.slice(1))\n            .join(' ');\n    }\n}\n\n// --- n8n Execution ---\nreturn (async () => {\n    const formatter = new UniversalFormatter();\n    const agentJsonString = $input.first().json.output;\n    const result = await formatter.format(agentJsonString);\n    return [result];\n})();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        32
+      ],
+      "id": "5c7de7d4-0ce0-46ff-94dc-8ee181a641e3",
+      "name": "output formatter"
+    },
+    {
+      "parameters": {
+        "resource": "custom",
+        "customResource": "={{ $json.model }}",
+        "operation": "getAll",
+        "returnAll": "={{ $json.kwargs.limit || 500 }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.odooTool",
+      "typeVersion": 1,
+      "position": [
+        -544,
+        400
+      ],
+      "id": "ca7b42b2-5f39-4666-97ce-cf046b763ffb",
+      "name": "tool_read_odoo_data",
+      "credentials": {
+        "odooApi": {
+          "id": "2bHkzjuDwAb2043O",
+          "name": "Odoo account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-5",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatVercelAiGateway",
+      "typeVersion": 1,
+      "position": [
+        -1152,
+        592
+      ],
+      "id": "3d935b36-49e0-4fa7-b9ec-c16ce6671572",
+      "name": "Vercel AI Gateway Chat Model",
+      "credentials": {
+        "vercelAiGatewayApi": {
+          "id": "DyN8wzsHEne3acRg",
+          "name": "Vercel AI Gateway account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "evolution api": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Business Intelligence Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Business Intelligence Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "read_odoo_data": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "create_odoo_record": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "update_odoo_record": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "get_order_line_details": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "Business Intelligence Agent": {
+      "main": [
+        [
+          {
+            "node": "output formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "Business Intelligence Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        []
+      ]
+    },
+    "predictive_analytics": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "output formatter": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tool_read_odoo_data": {
+      "ai_tool": [
+        [
+          {
+            "node": "Business Intelligence Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vercel AI Gateway Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6f20fb64-f3e7-4dd1-bee6-d5e8262f052f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "52f3d4fae1e1cc3e9778ed2b5dbdbc263016c71d2bca00d37cba817d37a774ea"
+  },
+  "id": "iPugew5qkPUOyAib",
+  "tags": [
+    {
+      "createdAt": "2025-09-22T07:00:13.002Z",
+      "updatedAt": "2025-09-22T07:00:13.002Z",
+      "id": "vA1nK9pxJkQEw0jE",
+      "name": "WhatsApp Integration"
+    },
+    {
+      "createdAt": "2025-09-22T07:00:13.009Z",
+      "updatedAt": "2025-09-22T07:00:13.009Z",
+      "id": "oe0eVJMw53kVmPij",
+      "name": "Financial Reports"
+    },
+    {
+      "createdAt": "2025-09-22T07:00:13.018Z",
+      "updatedAt": "2025-09-22T07:00:13.018Z",
+      "id": "1ognRllflrr8klsE",
+      "name": "Evolution API"
+    },
+    {
+      "createdAt": "2025-09-22T07:00:13.021Z",
+      "updatedAt": "2025-09-22T07:00:13.021Z",
+      "id": "xNGYBZJCVVSybVzU",
+      "name": "Business Intelligence"
+    },
+    {
+      "createdAt": "2025-09-22T07:00:13.021Z",
+      "updatedAt": "2025-09-22T07:00:13.021Z",
+      "id": "pPRw7D07iJ6GhO5Q",
+      "name": "Odoo ERP"
+    },
+    {
+      "createdAt": "2025-09-22T10:11:30.843Z",
+      "updatedAt": "2025-09-22T10:11:30.843Z",
+      "id": "oPEbZ0w8RgThSRbZ",
+      "name": "Odoo Sales"
+    },
+    {
+      "createdAt": "2025-09-22T18:20:38.113Z",
+      "updatedAt": "2025-09-22T18:20:38.113Z",
+      "id": "91YrlxbUDG80OEnd",
+      "name": "Odoo Analytics"
+    },
+    {
+      "createdAt": "2025-09-22T18:20:38.128Z",
+      "updatedAt": "2025-09-22T18:20:38.128Z",
+      "id": "wfCp9jPWdaFnLVz6",
+      "name": "Sales Reports"
+    }
+  ]
+}
