@@ -222,7 +222,7 @@ def test_gemini_connection():
         logger.info(f"API Key length: {len(GEMINI_API_KEY)}")
         logger.info(f"API Key prefix: {GEMINI_API_KEY[:10]}...")
         
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
         response = model.generate_content("Hello, this is a test message.")
         logger.info("Google Gemini API connection successful!")
         return True
@@ -265,7 +265,7 @@ def process_with_llm(message: str, context: dict, conversation_history: List[dic
     """Process the message with Google Gemini and return a response"""
     try:
         logger.info("Initializing Google Gemini model...")
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
         
         # Convert context to a readable format
         context_str = ""
