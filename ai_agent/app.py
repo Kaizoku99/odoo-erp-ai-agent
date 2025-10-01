@@ -523,9 +523,9 @@ async def chat(message: ChatMessage):
         logger.info(f"Message context: {message.context}")
         logger.info(f"Conversation history: {message.conversation_history}")
         
-        # Get current Odoo context with limited records (100 instead of all)
+        # Get current Odoo context with limited records (500 instead of all)
         logger.info("Fetching Odoo context...")
-        context = get_odoo_context(limit_records=100)
+        context = get_odoo_context(limit_records=500)
         logger.info(f"Retrieved Odoo context: {context}")
         
         # Process the message with LLM
