@@ -190,12 +190,150 @@ def get_odoo_context(limit_records=10):
                         [[]],
                         {'fields': ['name', 'sequence', 'is_won'], 'limit': limit_records}),
                 }
+            },
+            'hr': {
+                'name': 'employees',
+                'fetch': lambda: {
+                    'employees': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
+                        'hr.employee', 'search_read',
+                        [[]],
+                        {'fields': ['name', 'job_id', 'department_id', 'work_email', 'work_phone', 'company_id'], 'limit': limit_records}),
+                    'departments': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
+                        'hr.department', 'search_read',
+                        [[]],
+                        {'fields': ['name', 'manager_id', 'parent_id', 'company_id'], 'limit': limit_records}),
+                    'jobs': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
+                        'hr.job', 'search_read',
+                        [[]],
+                        {'fields': ['name', 'department_id', 'no_of_employee', 'state'], 'limit': limit_records}),
+                }
+            },
+            'hr_payroll': {
+                'name': 'payroll',
+                'fetch': lambda: {
+                    'payslips': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
+                        'hr.payslip', 'search_read',
+                        [[['state', 'in', ['draft', 'done']]]],
+                        {'fields': ['name', 'employee_id', 'date_from', 'date_to', 'state', 'company_id'], 'limit': limit_records}),
+                    'structures': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
+                        'hr.payroll.structure', 'search_read',
+                        [[]],
+                        {'fields': ['name', 'company_id'], 'limit': limit_records}),
+                }
+            },
+            'hr_attendance': {
+                'name': 'attendances',
+                'fetch': lambda: {
+                    'attendances': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
+                        'hr.attendance', 'search_read',
+                        [[]],
+                        {'fields': ['employee_id', 'check_in', 'check_out', 'worked_hours'], 'limit': limit_records}),
+                }
+            },
+            'fleet': {
+                'name': 'fleet',
+                'fetch': lambda: {
+                    'vehicles': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
+                        'fleet.vehicle', 'search_read',
+                        [[]],
+                        {'fields': ['name', 'model_id', 'driver_id', 'license_plate', 'state_id', 'company_id'], 'limit': limit_records}),
+                    'vehicle_models': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
+                        'fleet.vehicle.model', 'search_read',
+                        [[]],
+                        {'fields': ['name', 'brand_id', 'vehicle_type'], 'limit': limit_records}),
+                }
+            },
+            'hr_expense': {
+                'name': 'expenses',
+                'fetch': lambda: {
+                    'expenses': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
+                        'hr.expense', 'search_read',
+                        [[['state', 'in', ['draft', 'reported', 'approved', 'done']]]],
+                        {'fields': ['name', 'employee_id', 'product_id', 'total_amount', 'state', 'date'], 'limit': limit_records}),
+                    'expense_sheets': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
+                        'hr.expense.sheet', 'search_read',
+                        [[['state', 'in', ['draft', 'submit', 'approve', 'post', 'done']]]],
+                        {'fields': ['name', 'employee_id', 'total_amount', 'state', 'accounting_date'], 'limit': limit_records}),
+                }
+            },
+            'calendar': {
+                'name': 'calendar',
+                'fetch': lambda: {
+                    'events': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
+                        'calendar.event', 'search_read',
+                        [[]],
+                        {'fields': ['name', 'start', 'stop', 'allday', 'location', 'description', 'partner_ids'], 'limit': limit_records}),
+                }
+            },
+            'contacts': {
+                'name': 'contacts',
+                'fetch': lambda: {
+                    'contacts': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
+                        'res.partner', 'search_read',
+                        [[]],
+                        {'fields': ['name', 'email', 'phone', 'mobile', 'street', 'city', 'country_id', 'company_type', 'is_company'], 'limit': limit_records}),
+                }
+            },
+            'point_of_sale': {
+                'name': 'pos',
+                'fetch': lambda: {
+                    'orders': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
+                        'pos.order', 'search_read',
+                        [[['state', 'in', ['draft', 'paid', 'done', 'invoiced']]]],
+                        {'fields': ['name', 'partner_id', 'date_order', 'amount_total', 'state', 'session_id'], 'limit': limit_records}),
+                    'sessions': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
+                        'pos.session', 'search_read',
+                        [[['state', 'in', ['opening_control', 'opened', 'closing_control']]]],
+                        {'fields': ['name', 'user_id', 'start_at', 'stop_at', 'state', 'config_id'], 'limit': limit_records}),
+                }
+            },
+            'base': {
+                'name': 'companies',
+                'fetch': lambda: {
+                    'companies': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
+                        'res.company', 'search_read',
+                        [[]],
+                        {'fields': ['name', 'email', 'phone', 'website', 'street', 'city', 'country_id', 'currency_id'], 'limit': limit_records}),
+                    'users': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
+                        'res.users', 'search_read',
+                        [[]],
+                        {'fields': ['name', 'login', 'email', 'company_id', 'active'], 'limit': limit_records}),
+                }
             }
         }
         
         # Fetch data for each installed module
+        # Note: 'base' is always installed, so companies/users will always be available
         for module_name, fetcher in module_fetchers.items():
-            if module_name in installed_module_names:
+            # Special handling for base module (always present)
+            if module_name == 'base':
+                try:
+                    logger.info(f"Fetching data for base module (companies/users)")
+                    context[fetcher['name']] = fetcher['fetch']()
+                    logger.info(f"Successfully fetched base module data")
+                except Exception as e:
+                    logger.error(f"Error fetching base module data: {str(e)}")
+                    continue
+            # For contacts, always try to fetch (res.partner is a base model)
+            elif module_name == 'contacts':
+                try:
+                    logger.info(f"Fetching contacts data")
+                    context[fetcher['name']] = fetcher['fetch']()
+                    logger.info(f"Successfully fetched contacts data")
+                except Exception as e:
+                    logger.error(f"Error fetching contacts data: {str(e)}")
+                    continue
+            # For calendar, always try (calendar.event is a base model)
+            elif module_name == 'calendar':
+                try:
+                    logger.info(f"Fetching calendar data")
+                    context[fetcher['name']] = fetcher['fetch']()
+                    logger.info(f"Successfully fetched calendar data")
+                except Exception as e:
+                    logger.error(f"Error fetching calendar data: {str(e)}")
+                    continue
+            # For other modules, check if installed
+            elif module_name in installed_module_names:
                 try:
                     logger.info(f"Fetching data for module: {module_name}")
                     context[fetcher['name']] = fetcher['fetch']()
@@ -292,9 +430,19 @@ def process_with_llm(message: str, context: dict, conversation_history: List[dic
         3. Provide information about sales orders and customers
         4. Assist with purchase orders and supplier information
         5. Help with accounting, invoices, and payments
-        6. Provide insights about the data and suggest actions
-        7. Analyze relationships between different aspects of the business
-        8. Make changes to the database when requested
+        6. Provide information about CRM leads, opportunities, and activities
+        7. Answer questions about employees, departments, and job positions
+        8. Help with payroll, payslips, and salary structures
+        9. Track employee attendance and working hours
+        10. Manage fleet vehicles and vehicle models
+        11. Process and track employee expenses
+        12. View and manage calendar events and meetings
+        13. Access contact information for all partners
+        14. Help with Point of Sale orders and sessions
+        15. Provide information about companies and system users
+        16. Provide insights about the data and suggest actions
+        17. Analyze relationships between different aspects of the business
+        18. Make changes to the database when requested
         
         When making changes to the database, you should:
         1. First confirm the change with the user
@@ -375,9 +523,9 @@ async def chat(message: ChatMessage):
         logger.info(f"Message context: {message.context}")
         logger.info(f"Conversation history: {message.conversation_history}")
         
-        # Get current Odoo context with limited records (5 instead of all)
+        # Get current Odoo context with limited records (100 instead of all)
         logger.info("Fetching Odoo context...")
-        context = get_odoo_context(limit_records=5)
+        context = get_odoo_context(limit_records=100)
         logger.info(f"Retrieved Odoo context: {context}")
         
         # Process the message with LLM
