@@ -1,0 +1,279 @@
+{
+  "name": "WhatsApp with Memory - Coolify AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-odoo-ai-memory",
+        "options": {}
+      },
+      "id": "webhook-node",
+      "name": "WhatsApp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "whatsapp-odoo-ai-memory"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract message from WhatsApp webhook\nconst body = $input.first().json.body;\n\n// Handle different message types\nlet messageText = '';\nif (body?.data?.message?.conversation) {\n  messageText = body.data.message.conversation;\n} else if (body?.data?.message?.extendedTextMessage?.text) {\n  messageText = body.data.message.extendedTextMessage.text;\n} else {\n  messageText = 'Hello';\n}\n\n// Extract sender information\nconst customerPhone = body?.data?.key?.remoteJid || 'unknown';\nconst customerName = body?.data?.pushName || 'Customer';\nconst instance = body?.instance || 'default';\n\n// Create session key for chat memory\nconst sessionKey = `${customerPhone}_${instance}`;\n\nreturn {\n  json: {\n    message: messageText,\n    customer_phone: customerPhone,\n    customer_name: customerName,\n    instance: instance,\n    session_key: sessionKey,\n    original_webhook: body\n  }\n};"
+      },
+      "id": "extract-message",
+      "name": "Extract Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=-- Ensure table exists\nCREATE TABLE IF NOT EXISTS chat_history (\n  id SERIAL PRIMARY KEY,\n  session_key VARCHAR(255) NOT NULL,\n  role VARCHAR(20) NOT NULL,\n  content TEXT NOT NULL,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  INDEX idx_session_key (session_key),\n  INDEX idx_created_at (created_at)\n);\n\n-- Get last 10 messages for this session\nSELECT role, content, created_at\nFROM chat_history\nWHERE session_key = '{{ $json.session_key }}'\nORDER BY created_at DESC\nLIMIT 10;",
+        "options": {}
+      },
+      "id": "get-history",
+      "name": "Get Chat History",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "your-postgres-credential-id",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build conversation history array\nconst historyRows = $input.all();\nconst currentMessage = $('Extract Message').first().json;\n\n// Convert database rows to conversation format (reverse order - oldest first)\nconst conversationHistory = historyRows\n  .reverse()\n  .map(row => ({\n    role: row.json.role,\n    content: row.json.content\n  }));\n\nreturn {\n  json: {\n    message: currentMessage.message,\n    customer_name: currentMessage.customer_name,\n    customer_phone: currentMessage.customer_phone,\n    session_key: currentMessage.session_key,\n    instance: currentMessage.instance,\n    conversation_history: conversationHistory,\n    original_webhook: currentMessage.original_webhook\n  }\n};"
+      },
+      "id": "build-context",
+      "name": "Build Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ak08sc4008oo4w04g8os8gg0.129.151.133.251.sslip.io/chat",
+        "authentication": "none",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": {{ $json.message | toJsonString }},\n  \"context\": {\n    \"customer_name\": {{ $json.customer_name | toJsonString }},\n    \"customer_phone\": {{ $json.customer_phone | toJsonString }}\n  },\n  \"conversation_history\": {{ $json.conversation_history | toJsonString }}\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "call-ai-agent",
+      "name": "Call Coolify AI Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=-- Store user message\nINSERT INTO chat_history (session_key, role, content)\nVALUES (\n  '{{ $('Build Context').item.json.session_key }}',\n  'user',\n  {{ $('Build Context').item.json.message | toJsonString }}\n);\n\n-- Store AI response\nINSERT INTO chat_history (session_key, role, content)\nVALUES (\n  '{{ $('Build Context').item.json.session_key }}',\n  'assistant',\n  {{ $json.response | toJsonString }}\n);",
+        "options": {}
+      },
+      "id": "save-to-history",
+      "name": "Save to History",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1340,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "your-postgres-credential-id",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format the AI response for WhatsApp\nconst aiResponse = $('Call Coolify AI Agent').first().json.response;\nconst contextData = $('Build Context').first().json;\n\n// Prepare WhatsApp message\nreturn {\n  json: {\n    message: aiResponse,\n    instance: contextData.instance,\n    remoteJid: contextData.original_webhook?.data?.key?.remoteJid?.split('@')[0] || 'unknown'\n  }\n};"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $json.instance }}",
+        "remoteJid": "={{ $json.remoteJid }}",
+        "messageText": "={{ $json.message }}",
+        "options_message": {}
+      },
+      "id": "send-whatsapp",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        300
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "your-evolution-api-credential-id",
+          "name": "Evolution API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=-- Clean up old messages (keep last 30 days)\nDELETE FROM chat_history\nWHERE created_at < NOW() - INTERVAL '30 days';",
+        "options": {}
+      },
+      "id": "cleanup-old-messages",
+      "name": "Cleanup Old Messages",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1780,
+        480
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "your-postgres-credential-id",
+          "name": "PostgreSQL"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message": {
+      "main": [
+        [
+          {
+            "node": "Get Chat History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Chat History": {
+      "main": [
+        [
+          {
+            "node": "Build Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Context": {
+      "main": [
+        [
+          {
+            "node": "Call Coolify AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Coolify AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Save to History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to History": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Cleanup Old Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "whatsapp-with-memory",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "52f3d4fae1e1cc3e9778ed2b5dbdbc263016c71d2bca00d37cba817d37a774ea"
+  },
+  "tags": [
+    {
+      "id": "whatsapp-integration",
+      "name": "WhatsApp Integration"
+    },
+    {
+      "id": "odoo-erp",
+      "name": "Odoo ERP"
+    },
+    {
+      "id": "ai-agent",
+      "name": "AI Agent"
+    },
+    {
+      "id": "chat-memory",
+      "name": "Chat Memory"
+    }
+  ]
+}

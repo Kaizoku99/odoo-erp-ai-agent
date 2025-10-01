@@ -4,14 +4,49 @@ This folder contains n8n workflow templates for integrating your Coolify-deploye
 
 ## Available Workflows
 
-### 1. **whatsapp_with_coolify_ai_agent.json** (Recommended)
-**Purpose**: Complete WhatsApp chatbot using Evolution API and your AI agent
+### 1. **whatsapp_with_memory.json** (Recommended ⭐)
+**Purpose**: WhatsApp chatbot with conversation memory using PostgreSQL
+
+**Features**:
+- Receives WhatsApp messages via webhook
+- **Persistent conversation history** (last 10 messages)
+- **Context retention** across multiple interactions
+- **Back-and-forth conversations** with memory
+- Automatic cleanup of old messages (30 days)
+- Full Odoo ERP access via AI agent
+
+**Setup**:
+1. Set up PostgreSQL database (see [CHAT_MEMORY_SETUP.md](../CHAT_MEMORY_SETUP.md))
+2. Import to n8n
+3. Configure PostgreSQL and Evolution API credentials
+4. Set up webhook in Evolution API
+5. Test multi-turn conversations
+
+**Use Case**: Production WhatsApp bot with smart conversations that remember context
+
+**Example Conversation**:
+```
+User: "How many sales orders?"
+AI: "You have 5 sales orders"
+
+User: "Show me the top 3"  ← AI remembers we're talking about sales orders
+AI: "Here are the top 3: SO001, SO002, SO003..."
+
+User: "What's the status of the first one?"  ← AI remembers the list
+AI: "SO001 status is confirmed..."
+```
+
+---
+
+### 2. **whatsapp_with_coolify_ai_agent.json** (Simple Version)
+**Purpose**: Basic WhatsApp chatbot without memory
 
 **Features**:
 - Receives WhatsApp messages via webhook
 - Sends messages to Coolify AI agent
 - Returns AI responses to WhatsApp
 - Handles customer context
+- **No conversation memory** (each message is independent)
 
 **Setup**:
 1. Import to n8n
@@ -19,11 +54,11 @@ This folder contains n8n workflow templates for integrating your Coolify-deploye
 3. Set up webhook in Evolution API
 4. Test with WhatsApp message
 
-**Use Case**: Production WhatsApp bot for customer inquiries about Odoo data
+**Use Case**: Simple Q&A bot for one-off questions about Odoo data
 
 ---
 
-### 2. **simple_test_webhook.json** (For Testing)
+### 3. **simple_test_webhook.json** (For Testing)
 **Purpose**: Simple HTTP webhook for testing your AI agent
 
 **Features**:
@@ -49,7 +84,7 @@ curl -X POST https://your-n8n.com/webhook/test-ai-agent \
 
 ---
 
-### 3. **test version 1.1 copy.json** (Original - Complex)
+### 4. **test version 1.1 copy.json** (Original - Complex)
 **Purpose**: Your original complex workflow with multiple tools and agents
 
 **Features**:
@@ -69,13 +104,20 @@ curl -X POST https://your-n8n.com/webhook/test-ai-agent \
 
 ### Step 1: Choose Your Workflow
 
-**For Production (WhatsApp)**:
+**For Production with Memory (Recommended)**:
+- Use `whatsapp_with_memory.json`
+- Requires: PostgreSQL + Evolution API credentials
+- Best for: Multi-turn conversations with context
+
+**For Production without Memory (Simpler)**:
 - Use `whatsapp_with_coolify_ai_agent.json`
-- Requires: Evolution API credentials
+- Requires: Evolution API credentials only
+- Best for: Simple Q&A without conversation history
 
 **For Testing**:
 - Use `simple_test_webhook.json`
 - No credentials needed
+- Best for: Development and testing
 
 ### Step 2: Import to n8n
 
@@ -87,7 +129,15 @@ curl -X POST https://your-n8n.com/webhook/test-ai-agent \
 
 ### Step 3: Configure & Test
 
-**For WhatsApp workflow**:
+**For WhatsApp with Memory workflow**:
+1. Set up PostgreSQL (see [CHAT_MEMORY_SETUP.md](../CHAT_MEMORY_SETUP.md))
+2. Add PostgreSQL credentials in n8n
+3. Add Evolution API credentials
+4. Copy webhook URL
+5. Configure in Evolution API
+6. Test multi-turn conversation
+
+**For WhatsApp without Memory workflow**:
 1. Add Evolution API credentials
 2. Copy webhook URL
 3. Configure in Evolution API
@@ -100,16 +150,19 @@ curl -X POST https://your-n8n.com/webhook/test-ai-agent \
 
 ## Workflow Comparison
 
-| Feature | Simple Test | WhatsApp Bot | Original Complex |
-|---------|-------------|--------------|------------------|
-| **Complexity** | ⭐ Simple | ⭐⭐ Moderate | ⭐⭐⭐⭐⭐ Very Complex |
-| **Setup Time** | 2 minutes | 10 minutes | 30+ minutes |
-| **Dependencies** | None | Evolution API | Evolution API, PostgreSQL, Multiple credentials |
-| **AI Processing** | Coolify Agent | Coolify Agent | Multiple Gemini models + Tools |
-| **Odoo Access** | Full (via agent) | Full (via agent) | Full (via direct tools) |
-| **Chat Memory** | No | No (can add) | Yes (PostgreSQL) |
-| **WhatsApp** | No | Yes | Yes |
-| **Use Case** | Testing/Dev | Production | Advanced/Custom |
+| Feature | Simple Test | WhatsApp (No Memory) | WhatsApp (With Memory) ⭐ | Original Complex |
+|---------|-------------|----------------------|---------------------------|------------------|
+| **Complexity** | ⭐ Simple | ⭐⭐ Moderate | ⭐⭐⭐ Moderate | ⭐⭐⭐⭐⭐ Very Complex |
+| **Setup Time** | 2 minutes | 10 minutes | 20 minutes | 30+ minutes |
+| **Dependencies** | None | Evolution API | PostgreSQL + Evolution API | Evolution API, PostgreSQL, Multiple credentials |
+| **AI Processing** | Coolify Agent | Coolify Agent | Coolify Agent | Multiple Gemini models + Tools |
+| **Odoo Access** | Full (via agent) | Full (via agent) | Full (via agent) | Full (via direct tools) |
+| **Chat Memory** | No | No | ✅ Yes (PostgreSQL) | Yes (PostgreSQL) |
+| **Context Retention** | No | No | ✅ Yes (10 messages) | Yes |
+| **Multi-turn Conversations** | No | No | ✅ Yes | Yes |
+| **WhatsApp** | No | Yes | Yes | Yes |
+| **Use Case** | Testing/Dev | Simple Q&A | Smart Conversations | Advanced/Custom |
+| **Best For** | Development | Basic support | Customer service | Custom workflows |
 
 ## Integration Examples
 
@@ -161,18 +214,21 @@ HTTP Request
 
 ## Advanced Customizations
 
-### Add Conversation Memory
+### Conversation Memory (Built-in for whatsapp_with_memory.json)
 
-**Using PostgreSQL**:
+The memory-enabled workflow already includes:
+- ✅ PostgreSQL chat history storage
+- ✅ Last 10 messages context
+- ✅ Automatic cleanup of old messages (30 days)
+- ✅ Per-customer session isolation
+
+**For detailed setup instructions, see [CHAT_MEMORY_SETUP.md](../CHAT_MEMORY_SETUP.md)**
+
+**To add memory to the simple workflow**:
 1. Add **Postgres Chat Memory** node
 2. Configure session key: `{{ $json.customer_phone }}_{{ $json.instance }}`
 3. Store/retrieve conversation history
 4. Pass history to AI agent
-
-**Using Redis**:
-1. Add **Redis** node
-2. Store messages with TTL (e.g., 1 hour)
-3. Fetch before calling AI agent
 
 ### Add Customer Context
 

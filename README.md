@@ -138,17 +138,20 @@ docker-compose down -v
 
 ## 🔌 n8n Integration
 
-Once deployed, integrate with n8n for powerful automation workflows!
+Once deployed, integrate with n8n for powerful automation workflows with conversation memory!
 
 ### Quick Start
 
 We provide ready-to-use n8n workflow templates:
 
-1. **Simple Test Webhook** - Test your AI agent with HTTP requests
-2. **WhatsApp Bot** - Complete WhatsApp chatbot using Evolution API
-3. **Original Complex** - Advanced multi-tool workflow
+1. **WhatsApp Bot with Memory** ⭐ - Smart conversations with PostgreSQL history (Recommended)
+2. **WhatsApp Bot (Simple)** - Basic Q&A without memory
+3. **Simple Test Webhook** - Test your AI agent with HTTP requests
+4. **Original Complex** - Advanced multi-tool workflow
 
 **📖 See [N8N_INTEGRATION_GUIDE.md](./N8N_INTEGRATION_GUIDE.md) for complete setup instructions**
+
+**💬 See [CHAT_MEMORY_SETUP.md](./CHAT_MEMORY_SETUP.md) for conversation memory setup**
 
 **📁 Browse workflow templates in [n8n_workflows/](./n8n_workflows/)**
 
