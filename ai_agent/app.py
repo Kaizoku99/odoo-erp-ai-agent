@@ -67,8 +67,8 @@ def connect_to_odoo():
         logger.error(f"Error connecting to Odoo: {str(e)}")
         raise
 
-def get_odoo_context():
-    """Get current context from Odoo"""
+def get_odoo_context(limit_records=10):
+    """Get current context from Odoo with limited records to reduce token usage"""
     try:
         logger.info("Connecting to Odoo...")
         # Connect to Odoo
@@ -76,7 +76,7 @@ def get_odoo_context():
         uid = common.authenticate(ODOO_DB, ODOO_USERNAME, ODOO_PASSWORD, {})
         models = xmlrpc.client.ServerProxy(f'{ODOO_URL}/xmlrpc/2/object')
         
-        logger.info("Fetching data...")
+        logger.info(f"Fetching data (limited to {limit_records} records per query)...")
         context = {}
         
         # Check which modules are installed
@@ -95,11 +95,11 @@ def get_odoo_context():
                     'products': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'product.product', 'search_read',
                         [[['type', '=', 'product']]],
-                        {'fields': ['name', 'qty_available', 'virtual_available', 'standard_price']}),
+                        {'fields': ['name', 'qty_available', 'virtual_available', 'standard_price'], 'limit': limit_records}),
                     'categories': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'product.category', 'search_read',
                         [[]],
-                        {'fields': ['name', 'parent_id']}),
+                        {'fields': ['name', 'parent_id'], 'limit': limit_records}),
                 }
             },
             'mrp': {
@@ -108,15 +108,15 @@ def get_odoo_context():
                     'boms': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'mrp.bom', 'search_read',
                         [[]],
-                        {'fields': ['product_tmpl_id', 'product_qty', 'code']}),
+                        {'fields': ['product_tmpl_id', 'product_qty', 'code'], 'limit': limit_records}),
                     'workcenters': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'mrp.workcenter', 'search_read',
                         [[]],
-                        {'fields': ['name', 'resource_calendar_id', 'time_efficiency']}),
+                        {'fields': ['name', 'resource_calendar_id', 'time_efficiency'], 'limit': limit_records}),
                     'production_orders': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'mrp.production', 'search_read',
                         [[['state', 'in', ['draft', 'confirmed', 'progress']]]],
-                        {'fields': ['name', 'product_id', 'product_qty', 'state']}),
+                        {'fields': ['name', 'product_id', 'product_qty', 'state'], 'limit': limit_records}),
                 }
             },
             'sale': {
@@ -125,15 +125,15 @@ def get_odoo_context():
                     'orders': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'sale.order', 'search_read',
                         [[['state', 'in', ['draft', 'sent', 'sale']]]],
-                        {'fields': ['name', 'partner_id', 'amount_total', 'state', 'date_order']}),
+                        {'fields': ['name', 'partner_id', 'amount_total', 'state', 'date_order'], 'limit': limit_records}),
                     'order_lines': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'sale.order.line', 'search_read',
                         [[['order_id.state', 'in', ['draft', 'sent', 'sale']]]],
-                        {'fields': ['order_id', 'product_id', 'product_uom_qty', 'price_unit', 'price_subtotal']}),
+                        {'fields': ['order_id', 'product_id', 'product_uom_qty', 'price_unit', 'price_subtotal'], 'limit': limit_records}),
                     'customers': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'res.partner', 'search_read',
                         [[['customer_rank', '>', 0]]],
-                        {'fields': ['name', 'email', 'phone', 'street', 'city', 'country_id']}),
+                        {'fields': ['name', 'email', 'phone', 'street', 'city', 'country_id'], 'limit': limit_records}),
                 }
             },
             'purchase': {
@@ -142,15 +142,15 @@ def get_odoo_context():
                     'orders': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'purchase.order', 'search_read',
                         [[['state', 'in', ['draft', 'sent', 'purchase']]]],
-                        {'fields': ['name', 'partner_id', 'amount_total', 'state', 'date_order', 'date_planned']}),
+                        {'fields': ['name', 'partner_id', 'amount_total', 'state', 'date_order', 'date_planned'], 'limit': limit_records}),
                     'order_lines': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'purchase.order.line', 'search_read',
                         [[['order_id.state', 'in', ['draft', 'sent', 'purchase']]]],
-                        {'fields': ['order_id', 'product_id', 'product_qty', 'price_unit', 'price_subtotal']}),
+                        {'fields': ['order_id', 'product_id', 'product_qty', 'price_unit', 'price_subtotal'], 'limit': limit_records}),
                     'suppliers': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'res.partner', 'search_read',
                         [[['supplier_rank', '>', 0]]],
-                        {'fields': ['name', 'email', 'phone', 'street', 'city', 'country_id']}),
+                        {'fields': ['name', 'email', 'phone', 'street', 'city', 'country_id'], 'limit': limit_records}),
                 }
             },
             'account': {
@@ -159,15 +159,15 @@ def get_odoo_context():
                     'invoices': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'account.move', 'search_read',
                         [[['move_type', 'in', ['out_invoice', 'in_invoice']], ['state', '!=', 'cancel']]],
-                        {'fields': ['name', 'partner_id', 'amount_total', 'state', 'invoice_date', 'invoice_date_due', 'payment_state']}),
+                        {'fields': ['name', 'partner_id', 'amount_total', 'state', 'invoice_date', 'invoice_date_due', 'payment_state'], 'limit': limit_records}),
                     'invoice_lines': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'account.move.line', 'search_read',
                         [[['move_id.move_type', 'in', ['out_invoice', 'in_invoice']], ['move_id.state', '!=', 'cancel']]],
-                        {'fields': ['move_id', 'product_id', 'quantity', 'price_unit', 'price_subtotal']}),
+                        {'fields': ['move_id', 'product_id', 'quantity', 'price_unit', 'price_subtotal'], 'limit': limit_records}),
                     'payments': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'account.payment', 'search_read',
                         [[['state', '!=', 'cancel']]],
-                        {'fields': ['name', 'partner_id', 'amount', 'payment_type', 'date', 'state']}),
+                        {'fields': ['name', 'partner_id', 'amount', 'payment_type', 'date', 'state'], 'limit': limit_records}),
                 }
             },
             'crm': {
@@ -176,19 +176,19 @@ def get_odoo_context():
                     'leads': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'crm.lead', 'search_read',
                         [[['type', '=', 'lead']]],
-                        {'fields': ['name', 'partner_id', 'email_from', 'phone', 'stage_id', 'probability', 'expected_revenue', 'create_date']}),
+                        {'fields': ['name', 'partner_id', 'email_from', 'phone', 'stage_id', 'probability', 'expected_revenue', 'create_date'], 'limit': limit_records}),
                     'opportunities': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'crm.lead', 'search_read',
                         [[['type', '=', 'opportunity']]],
-                        {'fields': ['name', 'partner_id', 'email_from', 'phone', 'stage_id', 'probability', 'expected_revenue', 'create_date']}),
+                        {'fields': ['name', 'partner_id', 'email_from', 'phone', 'stage_id', 'probability', 'expected_revenue', 'create_date'], 'limit': limit_records}),
                     'activities': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'mail.activity', 'search_read',
                         [[['res_model', '=', 'crm.lead']]],
-                        {'fields': ['res_id', 'activity_type_id', 'summary', 'date_deadline', 'user_id', 'state']}),
+                        {'fields': ['res_id', 'activity_type_id', 'summary', 'date_deadline', 'user_id', 'state'], 'limit': limit_records}),
                     'stages': models.execute_kw(ODOO_DB, uid, ODOO_PASSWORD,
                         'crm.stage', 'search_read',
                         [[]],
-                        {'fields': ['name', 'sequence', 'is_won']}),
+                        {'fields': ['name', 'sequence', 'is_won'], 'limit': limit_records}),
                 }
             }
         }
@@ -337,6 +337,11 @@ def process_with_llm(message: str, context: dict, conversation_history: List[dic
         logger.error(f"Error in LLM processing: {str(e)}")
         logger.error(f"Error type: {type(e)}")
         logger.error(f"Error args: {e.args}")
+        
+        # Check if it's a rate limit error
+        if "429" in str(e) or "quota" in str(e).lower():
+            return "I'm currently experiencing high usage. Please wait a moment and try again. (Rate limit reached)"
+        
         raise
 
 @app.get("/ping")
@@ -370,9 +375,9 @@ async def chat(message: ChatMessage):
         logger.info(f"Message context: {message.context}")
         logger.info(f"Conversation history: {message.conversation_history}")
         
-        # Get current Odoo context
+        # Get current Odoo context with limited records (5 instead of all)
         logger.info("Fetching Odoo context...")
-        context = get_odoo_context()
+        context = get_odoo_context(limit_records=5)
         logger.info(f"Retrieved Odoo context: {context}")
         
         # Process the message with LLM
