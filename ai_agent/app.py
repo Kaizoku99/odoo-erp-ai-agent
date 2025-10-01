@@ -5,7 +5,7 @@ from typing import List, Optional, Any, Dict
 import os
 from dotenv import load_dotenv
 import xmlrpc.client
-import anthropic
+import google.generativeai as genai
 import logging
 import json
 
@@ -33,10 +33,13 @@ ODOO_DB = os.getenv("ODOO_DB", "HISEY")
 ODOO_USERNAME = os.getenv("ODOO_USERNAME", "cjhisey@gmail.com")
 ODOO_PASSWORD = os.getenv("ODOO_PASSWORD", "odoo")
 
-# Anthropic settings
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-if not ANTHROPIC_API_KEY:
-    raise ValueError("ANTHROPIC_API_KEY environment variable is not set")
+# Google Gemini settings
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY environment variable is not set")
+
+# Configure Gemini
+genai.configure(api_key=GEMINI_API_KEY)
 
 class ChatMessage(BaseModel):
     message: str
@@ -212,25 +215,19 @@ def get_odoo_context():
         logger.error(f"Error args: {e.args}")
         return {}
 
-def test_anthropic_connection():
-    """Test the connection to Anthropic API"""
+def test_gemini_connection():
+    """Test the connection to Google Gemini API"""
     try:
-        logger.info("Testing Anthropic API connection...")
-        logger.info(f"API Key length: {len(ANTHROPIC_API_KEY)}")
-        logger.info(f"API Key prefix: {ANTHROPIC_API_KEY[:10]}...")
+        logger.info("Testing Google Gemini API connection...")
+        logger.info(f"API Key length: {len(GEMINI_API_KEY)}")
+        logger.info(f"API Key prefix: {GEMINI_API_KEY[:10]}...")
         
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        response = client.messages.create(
-            model="claude-3-5-haiku-20241022",
-            max_tokens=100,
-            messages=[
-                {"role": "user", "content": "Hello, this is a test message."}
-            ]
-        )
-        logger.info("Anthropic API connection successful!")
+        model = genai.GenerativeModel('gemini-pro')
+        response = model.generate_content("Hello, this is a test message.")
+        logger.info("Google Gemini API connection successful!")
         return True
     except Exception as e:
-        logger.error(f"Anthropic API connection failed: {str(e)}")
+        logger.error(f"Google Gemini API connection failed: {str(e)}")
         logger.error(f"Error type: {type(e)}")
         logger.error(f"Error args: {e.args}")
         return False
@@ -265,10 +262,10 @@ def execute_database_operation(operation: DatabaseOperation):
         raise
 
 def process_with_llm(message: str, context: dict, conversation_history: List[dict] = None):
-    """Process the message with Claude and return a response"""
+    """Process the message with Google Gemini and return a response"""
     try:
-        logger.info("Initializing Anthropic client...")
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        logger.info("Initializing Google Gemini model...")
+        model = genai.GenerativeModel('gemini-pro')
         
         # Convert context to a readable format
         context_str = ""
@@ -323,21 +320,19 @@ def process_with_llm(message: str, context: dict, conversation_history: List[dic
         IMPORTANT: Maintain context from previous messages in the conversation. If the user refers to something 
         mentioned earlier (like a specific lead, customer, or order), use that information to provide relevant responses."""
         
-        # Prepare messages array with conversation history
-        messages = []
+        # Prepare the full prompt with conversation history
+        full_prompt = system_prompt + "\n\n"
         if conversation_history:
-            messages.extend(conversation_history)
-        messages.append({"role": "user", "content": message})
+            for msg in conversation_history:
+                role = msg.get("role", "user")
+                content = msg.get("content", "")
+                full_prompt += f"{role.upper()}: {content}\n\n"
+        full_prompt += f"USER: {message}\n\nASSISTANT:"
         
-        logger.info("Sending request to Anthropic API...")
-        response = client.messages.create(
-            model="claude-3-5-haiku-20241022",
-            max_tokens=2000,
-            system=system_prompt,
-            messages=messages
-        )
-        logger.info("Received response from Anthropic API")
-        return response.content[0].text
+        logger.info("Sending request to Google Gemini API...")
+        response = model.generate_content(full_prompt)
+        logger.info("Received response from Google Gemini API")
+        return response.text
     except Exception as e:
         logger.error(f"Error in LLM processing: {str(e)}")
         logger.error(f"Error type: {type(e)}")
@@ -348,8 +343,8 @@ def process_with_llm(message: str, context: dict, conversation_history: List[dic
 async def ping():
     """Test endpoint to verify service health"""
     try:
-        # Test Anthropic API connection
-        anthropic_connected = test_anthropic_connection()
+        # Test Google Gemini API connection
+        gemini_connected = test_gemini_connection()
         
         # Test Odoo connection
         try:
@@ -361,7 +356,7 @@ async def ping():
         
         return {
             "status": "ok",
-            "anthropic_connected": anthropic_connected,
+            "gemini_connected": gemini_connected,
             "odoo_connected": odoo_connected
         }
     except Exception as e:
