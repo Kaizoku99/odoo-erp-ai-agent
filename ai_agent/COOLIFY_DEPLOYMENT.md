@@ -6,7 +6,7 @@ This guide will help you deploy the standalone AI Agent service to Coolify. The 
 
 - A Coolify account and server
 - An existing Odoo instance (can be anywhere - local, cloud, or another server)
-- A Google Gemini API key ([Get one here](https://makersuite.google.com/app/apikey))
+- A Vercel AI Gateway API key ([Get one here](https://vercel.com/ai-gateway))
 - Your Odoo database credentials
 
 ## Architecture
@@ -19,12 +19,13 @@ This guide will help you deploy the standalone AI Agent service to Coolify. The 
                             │
                             ▼
                      ┌──────────────┐
-                     │Google Gemini │
-                     │     API      │
+                     │Vercel AI     │
+                     │Gateway       │
+                     │(Claude 4.5)  │
                      └──────────────┘
 ```
 
-The AI Agent acts as a bridge between n8n (or any other client) and your Odoo system, using Google Gemini to translate natural language into Odoo operations.
+The AI Agent acts as a bridge between n8n (or any other client) and your Odoo system, using Claude Haiku 4.5 via Vercel AI Gateway to translate natural language into Odoo operations.
 
 ## Step 1: Prepare Your Repository
 
@@ -62,17 +63,18 @@ The AI Agent acts as a bridge between n8n (or any other client) and your Odoo sy
 
 In Coolify, add the following environment variables:
 
-| Variable Name | Value | Description |
-|--------------|-------|-------------|
-| `ODOO_URL` | `http://your-odoo-server:8069` | Full URL to your Odoo instance |
-| `ODOO_DB` | `your_database_name` | Your Odoo database name |
-| `ODOO_USERNAME` | `your_username@email.com` | Odoo user with appropriate permissions |
-| `ODOO_PASSWORD` | `your_password` | Odoo user password |
-| `GEMINI_API_KEY` | `your_gemini_api_key` | Google Gemini API key |
+| Variable Name           | Value                          | Description                            |
+| ----------------------- | ------------------------------ | -------------------------------------- |
+| `ODOO_URL`              | `http://your-odoo-server:8069` | Full URL to your Odoo instance         |
+| `ODOO_DB`               | `your_database_name`           | Your Odoo database name                |
+| `ODOO_USERNAME`         | `your_username@email.com`      | Odoo user with appropriate permissions |
+| `ODOO_PASSWORD`         | `your_password`                | Odoo user password                     |
+| `VERCEL_AI_GATEWAY_KEY` | `your_vercel_gateway_key`      | Vercel AI Gateway API key              |
 
 ### Important Notes:
 
 - **ODOO_URL**: Must be accessible from the Coolify server
+
   - If Odoo is on the same Coolify server, use internal networking (e.g., `http://odoo-service:8069`)
   - If Odoo is external, ensure firewall rules allow the Coolify server to access it
   - Use the full URL including `http://` or `https://`
@@ -80,12 +82,17 @@ In Coolify, add the following environment variables:
 - **ODOO_DB**: The exact database name (case-sensitive)
 
 - **ODOO_USERNAME**: A user with API access rights. Recommended permissions:
+
   - Sales Manager (for sales operations)
   - Inventory Manager (for stock operations)
   - Accounting Manager (for financial operations)
   - Or an Administrator account
 
-- **GEMINI_API_KEY**: Get your API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+- **VERCEL_AI_GATEWAY_KEY**: Get your API key from [Vercel AI Gateway](https://vercel.com/ai-gateway)
+  - Sign in to your Vercel account
+  - Navigate to the AI Gateway section
+  - Generate a new API key
+  - The gateway will use Claude Haiku 4.5 model for fast and efficient AI responses
 
 ## Step 5: Deploy
 
@@ -104,10 +111,12 @@ curl https://your-ai-agent-url.coolify.app/ping
 ```
 
 Expected response:
+
 ```json
 {
   "status": "ok",
-  "gemini_connected": true,
+  "ai_connected": true,
+  "ai_model": "anthropic/claude-haiku-4-5-20251015",
   "odoo_connected": true
 }
 ```
@@ -121,6 +130,7 @@ curl -X POST https://your-ai-agent-url.coolify.app/chat \
 ```
 
 Expected response:
+
 ```json
 {
   "response": "Based on the current data, you have 15 sales orders..."
@@ -136,7 +146,7 @@ Now you can use this AI Agent in your n8n workflow:
 - **Method**: POST
 - **URL**: `https://your-ai-agent-url.coolify.app/chat`
 - **Authentication**: None (or add your own if needed)
-- **Headers**: 
+- **Headers**:
   - `Content-Type`: `application/json`
 - **Body**:
   ```json
@@ -157,33 +167,39 @@ Now you can use this AI Agent in your n8n workflow:
 ## API Endpoints
 
 ### GET /ping
+
 Health check endpoint
 
 **Response:**
+
 ```json
 {
   "status": "ok",
-  "gemini_connected": true,
+  "ai_connected": true,
+  "ai_model": "anthropic/claude-haiku-4-5-20251015",
   "odoo_connected": true
 }
 ```
 
 ### POST /chat
+
 Main endpoint for AI interactions
 
 **Request Body:**
+
 ```json
 {
   "message": "Your question here",
   "context": {},
   "conversation_history": [
-    {"role": "user", "content": "Previous message"},
-    {"role": "assistant", "content": "Previous response"}
+    { "role": "user", "content": "Previous message" },
+    { "role": "assistant", "content": "Previous response" }
   ]
 }
 ```
 
 **Response:**
+
 ```json
 {
   "response": "AI-generated response with Odoo data"
@@ -194,20 +210,24 @@ Main endpoint for AI interactions
 
 ### Connection Issues
 
-1. **"GEMINI_API_KEY environment variable is not set"**
-   - Ensure you've added the GEMINI_API_KEY in Coolify environment variables
+1. **"VERCEL_AI_GATEWAY_KEY environment variable is not set"**
+
+   - Ensure you've added the VERCEL_AI_GATEWAY_KEY in Coolify environment variables
    - Redeploy after adding variables
 
 2. **"Authentication failed" (Odoo)**
+
    - Verify ODOO_URL is correct and accessible
    - Check ODOO_DB name matches exactly
    - Verify username and password are correct
    - Test Odoo API access manually
 
-3. **"gemini_connected": false**
-   - Verify your Gemini API key is valid
-   - Check if you've enabled the Generative Language API in Google Cloud Console
+3. **"ai_connected": false**
+
+   - Verify your Vercel AI Gateway API key is valid
+   - Check if you have access to Claude models in your Vercel AI Gateway
    - Ensure there are no API quota issues
+   - Verify the gateway is properly configured
 
 4. **"odoo_connected": false**
    - Check if Odoo is running
@@ -218,11 +238,13 @@ Main endpoint for AI interactions
 ### Viewing Logs
 
 In Coolify:
+
 1. Go to your service
 2. Click on **"Logs"**
 3. View real-time application logs
 
 Look for:
+
 - Connection test results on startup
 - API request/response logs
 - Error messages
@@ -266,6 +288,7 @@ To update your AI Agent:
 ## Next Steps
 
 Once deployed, you can:
+
 - Integrate with your existing n8n workflow
 - Add custom endpoints for specific operations
 - Implement caching for better performance

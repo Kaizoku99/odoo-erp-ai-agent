@@ -5,7 +5,7 @@ from typing import List, Optional, Any, Dict
 import os
 from dotenv import load_dotenv
 import xmlrpc.client
-import google.generativeai as genai
+from openai import OpenAI
 import logging
 import json
 
@@ -33,13 +33,19 @@ ODOO_DB = os.getenv("ODOO_DB", "HISEY")
 ODOO_USERNAME = os.getenv("ODOO_USERNAME", "cjhisey@gmail.com")
 ODOO_PASSWORD = os.getenv("ODOO_PASSWORD", "odoo")
 
-# Google Gemini settings
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY environment variable is not set")
+# Vercel AI Gateway settings
+VERCEL_AI_GATEWAY_KEY = os.getenv("VERCEL_AI_GATEWAY_KEY")
+if not VERCEL_AI_GATEWAY_KEY:
+    raise ValueError("VERCEL_AI_GATEWAY_KEY environment variable is not set")
 
-# Configure Gemini
-genai.configure(api_key=GEMINI_API_KEY)
+# Configure OpenAI client to use Vercel AI Gateway
+client = OpenAI(
+    api_key=VERCEL_AI_GATEWAY_KEY,
+    base_url="https://ai-gateway.vercel.sh/v1"
+)
+
+# Claude Haiku 4.5 model configuration
+CLAUDE_MODEL = "anthropic/claude-haiku-4-5-20251015"
 
 class ChatMessage(BaseModel):
     message: str
@@ -353,19 +359,25 @@ def get_odoo_context(limit_records=10):
         logger.error(f"Error args: {e.args}")
         return {}
 
-def test_gemini_connection():
-    """Test the connection to Google Gemini API"""
+def test_ai_connection():
+    """Test the connection to Vercel AI Gateway with Claude"""
     try:
-        logger.info("Testing Google Gemini API connection...")
-        logger.info(f"API Key length: {len(GEMINI_API_KEY)}")
-        logger.info(f"API Key prefix: {GEMINI_API_KEY[:10]}...")
+        logger.info("Testing Vercel AI Gateway connection with Claude Haiku 4.5...")
+        logger.info(f"API Key length: {len(VERCEL_AI_GATEWAY_KEY)}")
+        logger.info(f"API Key prefix: {VERCEL_AI_GATEWAY_KEY[:10]}...")
         
-        model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
-        response = model.generate_content("Hello, this is a test message.")
-        logger.info("Google Gemini API connection successful!")
+        response = client.chat.completions.create(
+            model=CLAUDE_MODEL,
+            messages=[
+                {"role": "user", "content": "Hello, this is a test message."}
+            ],
+            max_tokens=50
+        )
+        logger.info("Vercel AI Gateway connection successful!")
+        logger.info(f"Test response: {response.choices[0].message.content}")
         return True
     except Exception as e:
-        logger.error(f"Google Gemini API connection failed: {str(e)}")
+        logger.error(f"Vercel AI Gateway connection failed: {str(e)}")
         logger.error(f"Error type: {type(e)}")
         logger.error(f"Error args: {e.args}")
         return False
@@ -400,10 +412,9 @@ def execute_database_operation(operation: DatabaseOperation):
         raise
 
 def process_with_llm(message: str, context: dict, conversation_history: List[dict] = None):
-    """Process the message with Google Gemini and return a response"""
+    """Process the message with Claude via Vercel AI Gateway and return a response"""
     try:
-        logger.info("Initializing Google Gemini model...")
-        model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
+        logger.info("Initializing Claude Haiku 4.5 via Vercel AI Gateway...")
         
         # Convert context to a readable format
         context_str = ""
@@ -468,19 +479,32 @@ def process_with_llm(message: str, context: dict, conversation_history: List[dic
         IMPORTANT: Maintain context from previous messages in the conversation. If the user refers to something 
         mentioned earlier (like a specific lead, customer, or order), use that information to provide relevant responses."""
         
-        # Prepare the full prompt with conversation history
-        full_prompt = system_prompt + "\n\n"
+        # Prepare messages array for Claude
+        messages = []
+        
+        # Add conversation history if available
         if conversation_history:
             for msg in conversation_history:
                 role = msg.get("role", "user")
                 content = msg.get("content", "")
-                full_prompt += f"{role.upper()}: {content}\n\n"
-        full_prompt += f"USER: {message}\n\nASSISTANT:"
+                messages.append({"role": role, "content": content})
         
-        logger.info("Sending request to Google Gemini API...")
-        response = model.generate_content(full_prompt)
-        logger.info("Received response from Google Gemini API")
-        return response.text
+        # Add the current user message
+        messages.append({"role": "user", "content": message})
+        
+        logger.info("Sending request to Vercel AI Gateway (Claude Haiku 4.5)...")
+        response = client.chat.completions.create(
+            model=CLAUDE_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                *messages
+            ],
+            max_tokens=4096,
+            temperature=0.7
+        )
+        
+        logger.info("Received response from Claude via Vercel AI Gateway")
+        return response.choices[0].message.content
     except Exception as e:
         logger.error(f"Error in LLM processing: {str(e)}")
         logger.error(f"Error type: {type(e)}")
@@ -496,8 +520,8 @@ def process_with_llm(message: str, context: dict, conversation_history: List[dic
 async def ping():
     """Test endpoint to verify service health"""
     try:
-        # Test Google Gemini API connection
-        gemini_connected = test_gemini_connection()
+        # Test Vercel AI Gateway connection with Claude
+        ai_connected = test_ai_connection()
         
         # Test Odoo connection
         try:
@@ -509,7 +533,8 @@ async def ping():
         
         return {
             "status": "ok",
-            "gemini_connected": gemini_connected,
+            "ai_connected": ai_connected,
+            "ai_model": CLAUDE_MODEL,
             "odoo_connected": odoo_connected
         }
     except Exception as e:
