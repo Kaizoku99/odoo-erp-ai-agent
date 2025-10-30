@@ -45,7 +45,7 @@ client = OpenAI(
 )
 
 # Claude Haiku 4.5 model configuration
-CLAUDE_MODEL = "anthropic/claude-haiku-4-5-20251015"
+CLAUDE_MODEL = "anthropic/claude-haiku-4.5"
 
 class ChatMessage(BaseModel):
     message: str

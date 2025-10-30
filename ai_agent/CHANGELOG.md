@@ -21,7 +21,7 @@ This release represents a significant upgrade to the AI backend, providing bette
 
 **After:**
 
-- Vercel AI Gateway with Claude Haiku 4.5 (`anthropic/claude-haiku-4-5-20251015`)
+- Vercel AI Gateway with Claude Haiku 4.5 (`anthropic/claude-haiku-4.5`)
 - OpenAI-compatible API endpoints
 - Unified gateway for multiple AI providers
 
@@ -70,7 +70,7 @@ client = OpenAI(
     api_key=VERCEL_AI_GATEWAY_KEY,
     base_url="https://ai-gateway.vercel.sh/v1"
 )
-CLAUDE_MODEL = "anthropic/claude-haiku-4-5-20251015"
+CLAUDE_MODEL = "anthropic/claude-haiku-4.5"
 ```
 
 #### Function Changes
@@ -202,7 +202,7 @@ ENV VERCEL_AI_GATEWAY_KEY=${VERCEL_AI_GATEWAY_KEY}
 {
   "status": "ok",
   "ai_connected": true,
-  "ai_model": "anthropic/claude-haiku-4-5-20251015",
+  "ai_model": "anthropic/claude-haiku-4.5",
   "odoo_connected": true
 }
 ```

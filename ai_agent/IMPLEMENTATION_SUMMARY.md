@@ -71,7 +71,7 @@ Successfully migrated the Odoo AI Agent from Google Gemini to Vercel AI Gateway 
 
 **Endpoint:** `https://ai-gateway.vercel.sh/v1`
 
-**Model:** `anthropic/claude-haiku-4-5-20251015`
+**Model:** `anthropic/claude-haiku-4.5`
 
 **Client Library:** OpenAI Python SDK (OpenAI-compatible endpoints)
 
@@ -84,7 +84,7 @@ client = OpenAI(
 )
 
 response = client.chat.completions.create(
-    model="anthropic/claude-haiku-4-5-20251015",
+    model="anthropic/claude-haiku-4.5",
     messages=[
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_message}

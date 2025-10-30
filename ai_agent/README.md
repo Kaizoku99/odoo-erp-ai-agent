@@ -91,7 +91,7 @@ Health check endpoint to verify connections.
 {
   "status": "ok",
   "ai_connected": true,
-  "ai_model": "anthropic/claude-haiku-4-5-20251015",
+  "ai_model": "anthropic/claude-haiku-4.5",
   "odoo_connected": true
 }
 ```

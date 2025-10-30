@@ -160,7 +160,7 @@ Expected response:
 {
   "status": "ok",
   "ai_connected": true,
-  "ai_model": "anthropic/claude-haiku-4-5-20251015",
+  "ai_model": "anthropic/claude-haiku-4.5",
   "odoo_connected": true
 }
 ```
@@ -190,7 +190,7 @@ curl -X POST http://localhost:8000/chat \
 3. **Model Configuration**
 
    - **Old:** `gemini-2.5-flash-preview-09-2025`
-   - **New:** `anthropic/claude-haiku-4-5-20251015`
+   - **New:** `anthropic/claude-haiku-4.5`
 
 4. **API Endpoint**
 
